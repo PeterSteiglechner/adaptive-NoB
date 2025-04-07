@@ -22,13 +22,13 @@ There are two versions of the model:
 - dataset = "gesis"  (Germany Panel data) or "liss" (Netherlands Panel data)
 - in params:
      - "n": this can be either an integer, so that we sample randomly from the dataset n individuals. Or you can set it to "all" so that we use all valid participants (which provided at least one answer for the surveys of the specified waves) 
-     - "socNetType": 
-           * "observe-all" --> agents observe all others, we don't need to bother about networks
-           * "observe-neighbours" --> agents observe only network neighhbours. This only makes sense for co-occurence (and later copying)
+     - "socNetType":
+          - "observe-all" --> agents observe all others, we don't need to bother about networks
+          - "observe-neighbours" --> agents observe only network neighhbours. This only makes sense for co-occurence (and later copying)
      - "socInfType":
-          * "co-occurence",
-          * "correlation" (only if socNetType is observe-all)
-          * "copy" (NOT YET)
+          - "co-occurence",
+          - "correlation" (only if socNetType is observe-all)
+          - "copy" (NOT YET)
 - in paramCombis sepcify a list of simulation runs with  ``` [(eps1, mu1, lam1), (eps2, mu2, lam2), ...] ```
 - Note that params "parties", "indegree", "outdegree" only change the social network, which is currently conceptualised as a stochastic block network based on parties that individuals feel closest to. We aim to ensure that each agent has on average indegree + outdegree links.     
     }
