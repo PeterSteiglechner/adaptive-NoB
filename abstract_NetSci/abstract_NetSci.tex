@@ -1,0 +1,255 @@
+\documentclass[10pt]{article}
+\input{/home/steiglechner/Orga/latex/packages.tex}
+
+\bibliography{/home/steiglechner/csh-research/postdoc.bib}
+
+\setlength\textwidth{18cm}
+
+\title{Exploring adaptive belief networks}
+
+\author{
+   Peter~Steiglechner\textsuperscript{1,*}, Mirta~Galesic\textsuperscript{1,2,3}, Henrik~Olsson\textsuperscript{1,2}, 
+}
+
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\noindent {\footnotesize 
+\textsuperscript{1} Complexity Science Hub, Vienna, Austria\\
+\textsuperscript{2} Santa Fe Institute, Santa Fe, NM, USA\\
+\textsuperscript{3} Vermont Complex Systems Institute, University of Vermont, Burlington, VT, USA\\
+\textsuperscript{*} \textit{Corresponding author:} \texttt{steiglechner@csh.ac.at}
+}
+
+\linenumbers
+
+\begin{abstract}
+    Our beliefs about political issues are not entirely independent of each other; they are embedded and structured within personal belief systems. For example, a person's concern about climate change may constrain that person's position on economic growth. We can model these systems as networks, with nodes representing an individual's beliefs on different issues and edges representing positive or negative relations, influences, or constraints between beliefs. Recent research has primarily explored how people change (or resist changing) their beliefs based on prescribed, static belief networks. Much less work has focused on how these network structures evolve and potentially diverge over time. 
+
+   We propose a computational model to explore how people may update their personal belief networks to (i) increase internal coherence (or reduce dissonance) and (ii) adapt to social influences. We formalise the internal process as Hebbian learning: individuals learn to strengthen those relations that are already consistent with their personal belief networks and unlearn or reverse those relations that are inconsistent. We formalise social learning as a linear convergence of the personal belief network towards the social belief network: individuals observe the beliefs of their peers, infer how these beliefs are correlated with each other, and align their personal belief networks accordingly. This reflects how difficult it is for individuals to unlearn (or ignore) dissonant relations when they are frequently reminded of such dissonance during social interactions. It also reflects how social learning can strengthen individuals belief networks and enhance their sense of coherence if their personal belief networks are consistent with social observations.
+
+   We initialise the agents in our model with different beliefs on political issues, taken from the latest European Social Survey, and set the belief relations to zero. We then simulate the formation of belief networks for all agents. Given our focus on the heterogeneous dynamics of belief network structures, we assume that the beliefs of these agents evolve much more slowly than the relations between beliefs, reflecting how it is easier for individuals to adapt to internal or social dissonance by reinterpreting belief relations rather than changing core beliefs. In this study, we assume that the agents are connected to all other agents and can observe everyone's respective beliefs, but we plan to relax this assumption later.  
+   
+   We find that Hebbian learning alone leads agents to develop heterogeneous and highly coherent belief networks, as they individually learn to emphasise coherent belief combinations and neglect dissonant ones. Social influence alone leads all agents to adopt nearly identical belief networks with moderate but nonzero edge weights. The combination of Hebbian and social learning leads to relatively moderate belief networks, but while the agents tend to agree broadly on the relations between beliefs, the networks exhibit notable differences. For example, an issue can be critical to one individual and negligible to another for structuring beliefs or evaluating their coherence. 
+   
+   Our research provides a basis for exploring the complex and intertwined processes that shape belief networks in groups of coherence-seeking and socially influenced individuals. The fact that people can develop structurally different belief networks---i.e.\ that they simply `see the world from different perspectives'---may prove important for understanding when and why they develop polarised beliefs about political issues. 
+   \end{abstract}
+
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+
+
+\clearpage
+
+\section{Are belief networks changing?}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=1]{../code/figs/bN-wave11.pdf}
+    \caption{Social belief network in 2023/2024 (wave 11) inferred from the German subset of the European Social Survey responses for a set of beliefs spanning laws regulating child adoption by LGBTQ people (\textit{hmsacld}), economic redistribution (\textit{gincdif}), european integration (\textit{euftf}), concern about climate change (\textit{wrclmch}), and perception of migrants (\textit{imueclt}). Edges represent partial correlations between the pair of beliefs. The colour denotes the sign of the relation.}
+\end{figure}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=1]{../code/figs/ESS_robustnessOfBeliefNetworks}
+    \caption{Partial correlations between different pairs of beliefs over time in the German subset of the European Social Survey from 2014/15 (wave 7) to 2023/24 (wave 11). The relations remain relatively robust, but there are some small trends. This is a `social belief network' and it gives us little insight into personal belief networks, let alone the heterogeneity of these networks.}
+\end{figure}
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=1]{../code/figs/ESS_difference-early-late-BN.pdf}
+    \caption{Social belief networks as described above for two time periods: from 2014/15 to 2019 (wave 7--9) and from 2021 to 2023/24 (wave 10 and 11). The edges weights are simply averaged over the corresponding survey waves. The main difference is the centrality of climate change concern, which is higher in the later belief network. }
+\end{figure}
+
+
+\FloatBarrier
+\section{The model}
+
+\subsection{Personal belief networks}
+
+The way a person structures her beliefs can be conceptualised as a network of $M$ nodes, $\mathcal{M}=\{1, \ldots, M\}$, connected by $E$ edges $(i,j)$ with weights $\omega_{ij}$, i.e.\ the entries of a weighted $M \times M$ adjacency matrix $W = \{\omega_{ij} \  \forall i,j\}$. %Nodes represent $N$ belief items and edges represent their relations. We explain the details in the following.
+%Figure~\ref{fig:net} shows an example belief network and we explain the elements in the following.
+
+An \textbf{internal node} $i$ represents a (political) issue or statement and is associated with a node value $x_i \in [-1,1]$ indicating the level of support that the individual assigns to the issue/statement. For example, one can be strongly in favour of eating animal products, hold moderately positive/negative attitudes towards it, or strngly oppose it. An \textbf{edge} between nodes $i$ and $j$ represents a weighted (and evaluative) relation between the two belief items. The weight of an edge, $\omega_{ij}\in[-1,1]$, between beliefs $i$ and $j$ can be positive or negative. A positive/negative relation suggests that the beliefs `want' to be aligned/disaligned. The case $\omega_{ij}=0$ indicates that the individual assumes no relation between the beliefs $i$ and $j$ and, therefore, a position on issue $i$ puts no constraint on the position on issue $j$ (and vice versa). Belief networks are balanced~\cite{heiderAttitudesCognitiveOrganization1946} if all edges are positive or if the network can be perfectly separated into two clusters of positive within- and negative between-cluster edges~\cite{dalegeLearningIsingModel}. 
+
+Using the personal belief network, we define \textbf{coherence}, $C(x)$ (or dissonance, i.e.\ lack of coherence), of a set of beliefs as the alignment of those beliefs with the personal belief network of the agent holding it. There are multiple ways to compute alignment and each way carries a slightly different meaning. Alignment is often measured (i) as the multiplication of node values~\cite{dalegeNetworksBeliefsIntegrative2024} or (ii) as the distance between node values, where distance can mean the Euclidean (squared) distance between beliefs $x_i$ and $x_j$ \cite[see e.g.\ opinion dynamics literature][]{degrootReachingConsensus1974,friedkinSocialInfluenceOpinions1990,deffuantMixingBeliefsInteracting2000}. Coherence is then a weighted sum of the pairwise alignments: 
+\begin{equation}\label{eq:coh-general}
+    C(x) = \sum_{i \in \mathcal{M}} \sum_{j\neq i} \ \omega_{ij} \cdot \delta(x_i, x_j) % + \beta_{\tau_i} \cdot \delta(\tau_i, x_i)
+    \end{equation}
+where multiplicative alignment takes the form $\delta(x_i, x_j)= x_i \cdot x_j$ and distance-based alignment takes the form $\delta(x_i, x_j) = - |x_i - x_j|^q$, typically with $q=1$ or $q=2$\footnote{Given that we discuss continuous opinions---rather than spin-like systems---we do not consider other measures of coherence such as entropy~\cite{dalegeAttitudinalEntropyAE2018}}. Regardless of the type of measure, beliefs with positive (negative) relations want to be aligned (disaligned) and equation~\ref{eq:coh-general} establishes a way to compare to what extent a set of beliefs complies with this principle given a specific belief network. In the following, we will consider only multiplicative alignment, assuming that people value alignment higher if the aligned belief values are more extreme.
+
+Finally, node strength (or strength centrality) is the sum of the weights of all edge connected to a node $i$: $\omega_{i} = \sum_j \omega_{ij}$. Node strength implies how important a belief is in terms of organising, influencing, or constraining other beliefs~\cite{fishmanChangeWeCan2022}. 
+
+\subsection{Belief network adaptation}
+
+We propose that an edge $(i,j)$ in a personal belief network of an individual person is updated as follows:
+\begin{eqnarray}
+    \omega_{ij}(t+1) & = & \omega_{ij}(t) + \delta t \cdot \left(\text{hebbian} + \text{social} + \text{decay} \right) = \nonumber \\
+     & = & \omega_{ij}(t) + \delta t \cdot \left( \epsilon \cdot (1- |\omega_{ij}|) \cdot  x_{i} \cdot x_{j} \ +\  \epsilon_{soc} \cdot (\Omega_{ij} - \omega_{ij}) \ -\  \lambda \cdot \omega_{ij} \right) 
+\end{eqnarray}
+We interpret each term in the follwoing.
+
+
+\subsection{Hebbian Learning}
+\begin{itemize}
+    \item What is Hebbian learning: what fires together,... \ra origins in cognitive science
+    \item Here, increase $\omega_{ij}$, if beliefs are aligned, i.e.\ if $x_i$ and $x_j$ have the same sign, decrease if misalgined.
+    \item This update rule is taken from by \cite{dalegeLearningIsingModel}.
+    \item \TODO Should it really be $1-|\omega_{ij}|$? Or better $(1-sign(x_i, x_j)\cdot \omega_{ij})$?
+    \item Components: 
+    \begin{itemize}
+        \item $\epsilon$ is the learning rate 
+        \item $(1-|\omega_{ij}|)$ enforces that learning dampens learning when $\omega$ is strong (negative or positive). It also ensures that $\omega_{ij}\in [0,1]$)  
+        \item $x_{i} \cdot x_{j}$ is the alignment of beliefs $i$ and $j$ 
+    \end{itemize}
+    \item Example for consequences of Hebbian learning: personal belief network relation between connected beliefs increases if they are aligned (and extreme).
+    \item As a consequence, one can reduce dissonance between beliefs by adapting the personal belief network. For example, one may be a feminist and support Trump by simply learning to ignore the dissonance these beliefs have caused in the past or still cause to other people.
+    \item In turn, one can gain much more reassureance (or coherence) if one strengthens beliefs that fit the belief system. For example, one may learn to gain a strengthened feeling of reassurance from supporting Trump and simultaneoulsy lamenting the `new wokeness', by strengthening the positive relation between these beliefs. 
+    \item Overall, we expect that Hebbian learning by itself (and with fixed beliefs) leads to personal belief networks with either very high edge weights (if the beliefs are aligned) or very low edge weights (if not), given that the personal network is (reasonably close to) balanced.    
+\end{itemize}
+
+\subsection{Social Influence}
+\begin{itemize}
+    \item People do not live in isolation and it can be hard to maintain a feeling of coherence if one is reminded regularly by one's social environment about dissonances in the personal belief system.
+    \item In particular, we define that people observe the \textit{social belief network}~\cite{boutylineBeliefNetworkAnalysis2017, brandtMeasuringBeliefSystem2022}. In particular, they observe the opinions of their social contacts (neighbours in a network, defined later). For now, we assume that this observation is accurate.
+    \item From the observation of the opinions $x_i$ and $x_j$ of all neighbours/friends $\mathcal{F} = \{A, B, C, \ldots\}$, one can get the correlation and this acts as a signal to increase or decrease an edge weight:
+    \begin{equation}
+        \Delta \omega_{ij} \sim  \epsilon_{soc} \cdot \Omega_{ij} - \omega_{ij}
+    \end{equation}
+    % observed Omega_ij 
+    % own: beta_ij omega_ij
+    % update 
+    where 
+    \begin{equation}
+        \Omega_{ij} = \text{correlation}(\{x_i^f \ \forall f \in \mathcal{F}\}, \{x_j^f  \ \forall f \in \mathcal{F}\})
+    \end{equation}
+    %\item This rule is inspired by early opinion dynamics \cite{degrootReachingConsensus1974,frenchFormalTheorySocial1956}, but note that people learn the correaltions, rather than beliefs.
+    \item Components: 
+    \begin{itemize}
+        \item $\epsilon_{soc}$ is the social learning rate.
+        \item $\Omega_{ij}$ is the correlation of beliefs in one's social environment. Note, that this is not necessarily reflective of the belief relations that the other people hold in their personal networks, i.e.\ $\omega_{ij}^f$ may be quite different on average from $\Omega_{ij}$.
+        \item $\Omega_{ij} - \omega_{ij}$ is the difference between social and personal belief network (for beliefs $i$ and $j$). 
+        %\item In addition, $\lambda_{soc}\cdot \beta_{ij}$ represents decay (similar to Hebbian learning), that penalises high attention.
+    \end{itemize}
+    \item Example for consequences of social learning: If a person observes that others relate two beliefs, she likely learns to also relate them. For example, if a person observes that there is a strong correlation between support for vaccines and support for Democrats among their friends (with some friends being supportive of both, others dismissive of both), the person may conclude that this relation also matters for her personal belief network. In turn, if other people have uncorrelated beliefs on two issues, such as long hair not being a signal for political positions anymore, this relation may also loose its importance for one's own belief network.   
+    \item As a consequence, social influence may lead a person to highlight internal dissonances if one's belief relations are disaligned with the social environment. This counteracts the internal, hebbian updating which aims at reducing dissonance. On the other hand, social influence can also reinforce coherence when social circles mirror one's personal network.  
+    %\item You can live in a dissonant state by your own, because you can learn to pay no attention to relations that cause dissonance in your set of beliefs. You can not live in a dissonant state if you are surrounded by friends that remind you of these relations between beliefs. 
+    %\item In contrast, you can live in a coherent world, where you get a lot of reassurance from beliefs that are aligned, but if this relation is not reflected in your social environment, this constrains how much weight (=attention) you can give to that link and, thus, how much reassurance comes from it.   
+    %\item Overall, we expect that social forces can either strongly amplify attention at least on certain issues (echo chamber effect) or it can balance weights
+\end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=1]{../code/figs/processes.pdf}
+    \caption{Processes that shape personal belief network edges $\omega_{ij}$ between beliefs $i$ and $j$ for the case $x_i=x_j=1$. Hebbian learning leads to an increase in edge weight because $x_i$ and $x_j$ are aligned. Social learning leads to an equalisation of $\omega_{ij}$ towards the observed correlation of these beliefs in the person's local social environment, the social signal $\Omega_{ij}$. Decay causes large positive/negative edge weights to de-/increase.}
+\end{figure}
+
+
+\subsection{Simulation}
+\begin{itemize}
+    \item We initialise $N=50$ agents in a fully connected network.
+    \item Each agent has a personal belief network with weights $\omega_{ij}$. 
+    \item We select five items describing a person's political beliefs on various topics from the European Social Survey, wave 11 (year 2023): 
+    \begin{itemize}
+        \item \textit{gincdif}: The government should take measures to reduce differences in income levels. Agree strongly ($-1$) vs. Disagree strongly ($1$) on 5-point scale.
+        \item \textit{hmsacld}: Gay male and lesbian couples should have the same rights to adopt children as straight couples. Agree strongly ($-1$) vs. Disagree strongly ($1$) on 5-point scale.
+        \item \textit{euftf}: Should European Union go further or has it already gone too far? Go further ($-1$) vs. Gone too far ($1$) on 10-point scale.
+        \item \textit{imueclt}: Germany's cultural life is generally undermined or enriched by people coming to live here from other countries. Enriched ($-1$) vs. Undermined ($1$) on 10-point scale (inverted from original).
+        \item \textit{wrclmch}: How worried are you about climate change? Extremely ($-1$) vs. Not at all ($1$) on 5-point scale.
+    \end{itemize}
+    \item We initialise the agents with opinions that match (randomly sampled) survey responses from German participants of the ESS, wave 11 (only those that provide answers on all five questions). We keep the beliefs fixed throughout the simulation.
+    \item We initilise the agents' personal belief networks by setting $\omega_{ij}(t=0)$ to the partial correlations  between the five items as above of the full German survey subset. Every agent, thus, starts the simulation with the same belief network but different beliefs.
+    \item We update the belief networks of all agents (in random order) over $ T=200 $ time steps (see equation above)
+    \item Note, since we keep beliefs fixed, agents make the same social observation in each time step which is the partial correlation of the two items based on the beliefs of the $N-1$ neighbours. Since we consider a complete graph, all agents observe nearly the same correlations.
+    \item We run the following experiments:
+    \begin{itemize}
+        \item Hebbian Learning only ($\epsilon=0.1$, $\epsilon_{soc}=0$, $\lambda=0.02$)
+        \item Social Learning only ($\epsilon=0$, $\epsilon_{soc}=0.1$, $\lambda=0.02$)
+        \item Hebbian + Social Learning ($\epsilon=0.1$, $\epsilon_{soc}=0.1$, $\lambda=0.02$)
+    \end{itemize}
+    \item We present the outcome of our simulation experiments as 
+    \begin{itemize}
+        \item the distribution of belief centrality (averaged over agents), $\omega_i = \sum_{j} \, \omega_{ij}$ at time $t=T$.
+        \item coherence, $C(x)$, at time $t=T$ averaged over agents and seeds, and 
+        \item the distribution of belief relations, $\omega_ij$ at time $t=T$ among the agents. This indicates differences in the belief networks between the agents
+    \end{itemize}
+    \item \TODO Perhaps we will vary the network, the number of agents, ...
+    \item \TODO We might also test heterogeneous initial belief networks. 
+    \item \TODO We might do the step above with different identity groups.
+\end{itemize}
+
+% Things to note
+% \begin{itemize}
+%     \item perhaps, when we increase $\epsilon_{soc}$ we should also increase $\lambda$? Because otherwise the influence would be mostly positive by design since $\Omega$ and $\omega$ are somehow related given that we take the $\omega$ as a result of the (full) data.
+%     \item 
+% \end{itemize}
+
+\section{Results}
+
+
+\FloatBarrier
+\subsection{Single simulation}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{../code/figs/belief-centrality_sims-seed3_eps0.1_epssoc0.1_lam0.02_n50_T200.pdf}
+    \caption{Single simulation with Hebbian learning only ($\epsilon=0.1$), social influence only ($\epsilon_{soc}=0.1$) or both combined. The number of agents is $50$ and $\lambda=0.02$. Panel A shows the average belief centrality across the agents. Panels B to E show the average belief networks of these agents at $t=0$ and at $t=200$ for the three simulation experiments.}
+    \label{fig:}
+\end{figure}
+
+
+
+sth like: hebbian learning leads to either increase or decrease of edge attention (as expected). Social influence leads to (partial) assimilation of the beliefs to the social observation, which is always the same. Individuals have nearly identical belief networks. And they are relatively moderate. For Hebbian + Social learning, we get moderate belief networks, but also some heterogeneity. 
+
+
+\FloatBarrier
+\subsection{Belief centrality}
+
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[scale=1] {figs/bN.pdf}
+%     \caption{Model results. Belief networks and belief centrality, $\omega_{*}$, at at $t=0$ (blue) and at $t=200$ in exemplary simulations with Hebbian learning only (orange), social influence only (green), and Hebbian and social learning combined (red). The panels on the right show the average belief networks of an individual for these cases.}
+%     \label{fig:ess}
+% \end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=1]{../code/figs/wi-average_boxplot_2025-02-11_eps0.1_epssoc0.1_lam0.02_n50_T200.pdf}
+    \caption{Belief centrality in simulations with Hebbian learning only ($\epsilon=0.1$), social influence only ($\epsilon_{soc}=0.1$) or both combined. The number of agents is $50$ and $\lambda=0.02$. The boxplot shows the variation of belief centrality $\omega_{i}$ over 20 replica simulations (dots) at $t=0$ (A) and at $t=200$ for the three simulations (B-D).}
+\end{figure}
+
+
+\FloatBarrier
+\subsection{Average coherence/energy}
+
+\TODO  
+
+sth like: hebbian learning increases the coherence (by design), social influence alone reduces that. The combination lies somewhere in between. This relis a lot on $\lambda$.
+
+
+\FloatBarrier
+\subsection{Differences in belief networks between agents}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=1]{../code/figs/wijs_boxplot_2025-02-11_eps0.1_epssoc0.1_lam0.02_n50_T200.pdf}
+    \caption{Distribution of edge weights $\omega_{ij}$ in 20 simulations among the 50 agents. For comparison we show the case with Hebbian learning only (top), Social learning only (middle), and a combination of Hebbian and Social learning (bottom row). For Hebbian learning, weights are either large, $\omega_{ij} \sim \pm 0.5$ or $\omega_{ij}=0$ with median typically at $0$, i.e.\ ignorance towards most belief dimensions. For social learning, agents all have the same moderate belief networks; variation occurs accross simulations. For combined learning, belief network relations tend to be moderately positive, but there is some variation among the agents.}
+    \label{fig:}
+\end{figure}
+
+sth like: even if we all agree on $\omega_{ij}$ initially, we can still develop very different belief systems if we rely on Hebbian learning. Social influence balances this. The combination leads to variation but also reasonably moderate structures. 
+
+\TODO include the baseline $\omega_{ij}(t=0)$ as a horizontal line.
+
+\end{document}
