@@ -11,7 +11,7 @@ We take opinions from Netherlands/Germnay/Austria(TODO) panel data in two wave p
 
 There are two versions of the model: 
 
-1. model_equ.py assumes that beliefs remain constant and individuals observe the correlation/co-occurence of beliefs of **all** others. Thus, we can define an equilibrium model in which $\Delta w_{ij}=0$ for all belief dimensions $i$ and $j$.
+1. model_equ.py assumes that beliefs remain constant and individuals observe the correlation/co-occurence of beliefs of **all** others. Thus, we can define an equilibrium solution of the model at which $\Delta w_{ij}=0$ for all belief dimensions $i$ and $j$.
 
 2. model_dynamic.py can incorporate also belief change or networks, such that agent observations are heterogeneous 
 
