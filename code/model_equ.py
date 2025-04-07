@@ -54,7 +54,7 @@ def equiSim(atts, wave, params, country, folder, dataset):
 
 
 if __name__=="__main__":
-    folder = "~/csh-research/projects/opinion-data-curation/data/clean/"
+    folder = "inputdata/" #
     dataset = "gesis"
     country= countryXdataset[dataset]
     atts = atts_datasets[dataset]
@@ -83,7 +83,7 @@ if __name__=="__main__":
         for wave in waves[dataset]:
             simOut = equiSim(atts=atts, wave=wave, params=params, country=country, folder=folder, dataset=dataset)
             waveName = wave if type(wave)==int else f"{wave[0]}-{wave[-1]}"
-            filename = f"resultsMar/inferBNs-equilibrium_{params['socInfType']}_{dataset.upper()}{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}.csv"
+            filename = f"results/inferBNs-equilibrium_{params['socInfType']}_{dataset.upper()}{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}.csv"
             simOut.to_csv(filename)
             print(eps,mu,lam, filename)
                             

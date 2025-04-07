@@ -161,7 +161,7 @@ def dynSim(atts, wave, country, params, folder, dataset):
 #####  MAIN   #####
 #################################
 if __name__=="__main__":
-    folder = "~/csh-research/projects/opinion-data-curation/data/clean/"
+    folder = "inputdata" #"~/csh-research/projects/opinion-data-curation/data/clean/"
     dataset = "gesis"
     country= countryXdataset[dataset]
     atts = atts_datasets[dataset]
@@ -200,7 +200,7 @@ if __name__=="__main__":
         for wave in waves[dataset]:
             socNet, simOut = dynSim(atts, wave, country, params, folder=folder, dataset=dataset)
             waveName = wave if type(wave)==int else f"{wave[0]}-{wave[-1]}"
-            filename = f"resultsMar/inferBNs-dynamic_{params['socInfType']}-{params['socNetType']}_{dataset.upper()}{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}.csv"
+            filename = f"results/inferBNs-dynamic_{params['socInfType']}-{params['socNetType']}_{dataset.upper()}{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}.csv"
             simOut.to_csv(filename)
 
             print(eps,mu,lam, filename)
