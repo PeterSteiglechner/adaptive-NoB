@@ -43,9 +43,10 @@ def update_step(t, ag, socNet, atts, Wij, params, **kwargs):
         delBeta += hebbian(wij, x[i], x[j], eps)
         # Social
         if params["socInfType"]=="copy":
-            currWij = socNet.nodes[np.random.choice(list(socNet[ag].keys()))]["G"][e]
+            neighbour = None if len(socNet[ag]) == 0 else np.random.choice(list(socNet[ag].keys()))
+            currWij = 0 if neighbour is None else socNet.nodes[neighbour]["G"][e]
         else:
-            currWij = Wij(ag).loc[i,j]
+            currWij = 0 if Wij(ag).empty else Wij(ag).loc[i,j]
         delBeta += socialinfluence(wij, currWij, mu)  
 
         G_ag[e] = np.clip(wij + params["dt"] * delBeta, a_min=-1, a_max=1)
@@ -161,25 +162,25 @@ def dynSim(atts, wave, country, params, folder, dataset):
 #####  MAIN   #####
 #################################
 if __name__=="__main__":
-    folder = "inputdata" #"~/csh-research/projects/opinion-data-curation/data/clean/"
+    folder = "inputdata/" #"~/csh-research/projects/opinion-data-curation/data/clean/"
     dataset = "gesis"
     country= countryXdataset[dataset]
     atts = atts_datasets[dataset]
     edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
     params={
         "n": 100,    # integer or "all"
-        "seed":1,
+        "seed":42,
         "T":100,
         "dt":1,
         "track_times":[0,100],
-        "socNetType":"observe-all",  # observe-neighbours or observe-all
+        "socNetType":"observe-neighbours",  # observe-neighbours or observe-all
         "socInfType":"co-occurence",   # correlation or co-occurence or copy(TODO)
         "eps":None, #filled later
         "mu":None, 
         "lam":None,
         "parties": parties[country], 
         "indegree":10, 
-        "outdegree":3,
+        "outdegree":0,
     }
     # waves defines a set of waves before and after 2021
     waves = {
@@ -200,7 +201,7 @@ if __name__=="__main__":
         for wave in waves[dataset]:
             socNet, simOut = dynSim(atts, wave, country, params, folder=folder, dataset=dataset)
             waveName = wave if type(wave)==int else f"{wave[0]}-{wave[-1]}"
-            filename = f"results/inferBNs-dynamic_{params['socInfType']}-{params['socNetType']}_{dataset.upper()}{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}.csv"
+            filename = f"results/inferBNs-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}.csv"
             simOut.to_csv(filename)
 
             print(eps,mu,lam, filename)
