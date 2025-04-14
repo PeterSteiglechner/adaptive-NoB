@@ -7,6 +7,7 @@ import pingouin
 from itertools import combinations
 import copy
 import string
+from scipy.sparse import csr_matrix
 
 def initialise(n, atts, wave, filepath, seed=42):
     # prepare dataset and extract/rename attitude columns
@@ -52,13 +53,13 @@ socialinfluence = lambda wij, Wij, mu: mu * (Wij - wij) if ~np.isnan(Wij) else 0
 #dwij = lambda wij, xi, xj, Wij, eps, mu, lam: hebbian(wij, xi, xj, eps) + socialinfluence(wij, Wij, mu) + decay(wij, lam)
 
 
-def get_socialOmega(agentlist, ops, neighbours, atts, params):
+def get_socialOmega(agentdict, agentlist, ops, atts, params):
     """if opinions don't change, we can calculate the social signal (Wij) from the correlation or co-occurence upfront
 
     Args:
+        agentdict (dict): contains the attributes (incl opinions, neighbours, ...) of all agents
         agentlist (list): contains indices in the dataframe that define the agents 
         ops (pd.DataFrame): contains opinion values for dimensions (atts) and indices (agentlist)
-        neighbours (dict): contains list of social net neighbour indices (in agentlist) for each agent in agentlist  
         atts (list): contains the opinion dimensions
         params (dict): contains parameter settings 
 
@@ -76,12 +77,12 @@ def get_socialOmega(agentlist, ops, neighbours, atts, params):
 
     elif params["socInfType"]=="co-occurence":
         if params["socNetType"] == "observe-neighbours": 
-            observed_signs = {ag: {att: np.array([signOp(ops.loc[nb, att]) for nb in neighbours[ag] if nb!= ag]).astype(int) for att in atts} for ag in agentlist}
+            observed_signs = {ag: {att: np.array([signOp(ops.loc[nb, att]) for nb in agentdict[ag]["neighbours"] if nb!= ag]).astype(int) for att in atts} for ag in agentlist}
             W_cooc_ag = {}
             for ag in agentlist:
                 W_cooc= [(i, 
                           j,
-                          np.nan if len(neighbours[ag])==0 else 
+                          np.nan if len(agentdict[ag]["neighbours"])==0 else 
                           np.mean(observed_signs[ag][i] * observed_signs[ag][j])
                           )
                           for i in atts for j in atts if i != j
@@ -94,7 +95,62 @@ def get_socialOmega(agentlist, ops, neighbours, atts, params):
             W_cooc = pd.DataFrame(W_cooc, columns=["i", "j", "cooccurence"]).pivot_table(index="i", columns="j", values="cooccurence")
             return lambda ag: W_cooc
     
-        
+
+
+#################################
+#####  Initialise Network   #####
+#################################
+def initialise_socialnetwork(agentlist, identity, ops, atts, params ):
+    print("initialise_socialnetwork")
+    seed = params["seed"]
+    np.random.seed(seed)
+    if params["socInfType"]=="correlation":
+        if params["socNetType"] == "observe-all":
+            neighbours = {ag: [] for ag in agentlist}
+        else:
+            print("ERROR: Correlation can only be run with observe-all")
+            quit()
+    elif (params["socInfType"]=="co-occurence") or (params["socInfType"]=="copy") :
+        if params["socNetType"] == "observe-all":
+            neighbours = {ag: [] for ag in agentlist}
+        elif params["socNetType"] == "observe-neighbours":            
+            groupSizes = [(identity==p).sum() for p in params["parties"]]
+            groupSizes[params["parties"].index("none")] += identity.isna().sum() + (identity=="other").sum()
+            n = len(agentlist)
+            assert (int(sum(groupSizes)) - n) == 0
+            A = (np.random.random(size=(n,n))<= params["outdegree"]/n).astype(np.bool_)
+            ind = 0
+            for group, size in zip(params["parties"], groupSizes):
+                # in-group
+                A[ind:ind+size, ind:ind+size] = np.random.random(size=(size, size)) <= params["indegree"]/size
+                ind += size
+            agentlist_sorted = [
+                ag for party in params["parties"]
+                for ag in agentlist if identity[ag] == party
+            ] + [
+                ag for ag in agentlist if identity[ag]=="other" or ag in identity.loc[identity.isna()].index
+            ]
+            #nx.from_numpy_array(A, nodelist=agentlist_sorted)
+            agentlist = agentlist_sorted         
+            A_csr = csr_matrix(A)
+            neighbours = {ag: [agentlist[nb] for nb in A_csr[i].indices.tolist()] for i, ag in enumerate(agentlist)}
+
+    agentdict = {}
+    for i, ag in enumerate(agentlist):
+        ag_BN = { (a1, a2): 0 for a1, a2 in combinations(atts, 2) }
+        attrs =  {
+            "x": {att: ops.loc[ag, att] for att in atts} ,
+            "identity": identity[ag],
+            "BN": ag_BN,
+            "coherence": 0,
+            "nodeCentrality": [sum([w for e, w in ag_BN.items() if n in e]) for n in atts],
+            "neighbours": neighbours[ag]
+        }
+        agentdict[ag] = attrs
+
+    return agentdict
+
+
 
 
 
