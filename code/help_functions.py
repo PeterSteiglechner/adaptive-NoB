@@ -2,14 +2,40 @@
 
 import numpy as np
 import pandas as pd
-import networkx as nx
 import pingouin
 from itertools import combinations
 import copy
 import string
 from scipy.sparse import csr_matrix
 
-def initialise(n, atts, wave, filepath, seed=42):
+def determine_agentlist(filepath, waves, n, atts, seed):
+    np.random.seed(seed)
+    inds = []
+    for w in waves:
+        df = pd.read_csv(filepath, sep=",", index_col="ID", low_memory=False)
+        if "gesis" in filepath:
+            renameAtts = dict(zip( ["1-kpx_1090", "kpx_1130", "1-kpx_1210", "kpx_1290", "kpx_1250", "kpx_1590"],  ["econ", "migr", "assim", "clim", "euro", "femin"]))
+            attOriginalNames = [c for c in df.columns if (len(c.split(" "))==3) and (c.split(" ")[2][1:-1] in renameAtts.keys()) and not "Imp:" in c]
+            
+            df = df.rename(columns=dict(zip(attOriginalNames, [renameAtts[c.split(" ")[2][1:-1]] for c in attOriginalNames[:]] )))
+        if type(w)==int:
+            # single wave
+            df = df.loc[df.wave==w]
+        elif type(w)==list:
+            # multiple waves. average per individual (level=0, same index) and take the first entry, which should be the same for all ("the first")
+            df = df.loc[df.wave.isin(w)]
+            for att in atts:
+                df[att] = df.reset_index().groupby("ID")[att].mean()
+            df = df.loc[~df.index.duplicated(keep='first')]
+        ops = df[atts].dropna(how="any", axis="index")
+        inds.append(ops.index.to_list())
+    common = list(set(inds[0]) & set(inds[1]))
+    agentlist = np.random.choice(common, size=n, replace=False)
+    assert (len(agentlist)==n)
+    return agentlist
+
+
+def initialise(filepath, wave, n, predefined_agentlist, atts, seed=42):
     # prepare dataset and extract/rename attitude columns
     data = pd.read_csv(filepath, sep=",", index_col="ID", low_memory=False)
     if "gesis" in filepath:
@@ -29,11 +55,12 @@ def initialise(n, atts, wave, filepath, seed=42):
         data = data.loc[~data.index.duplicated(keep='first')]
     ops = data[atts].dropna(how="any", axis="index")
     
-    if not n=="all":
+    if not n=="all" and predefined_agentlist is not None:
+        ops = ops.loc[predefined_agentlist]
+    if not n=="all" and predefined_agentlist is None:
         ops = ops.sample(n, replace=False, random_state=seed)
-    
+    #print(predefined_agentlist == ops.index.tolist())
     agentlist = ops.index.tolist()
-    
     # extract identity and weights
     identity = data.loc[agentlist, "partyIdent"]
     if "ess" in filepath:

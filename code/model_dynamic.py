@@ -3,7 +3,6 @@
 
 import numpy as np
 import pandas as pd
-import networkx as nx
 import pingouin  # for partial correlation: pcorr
 from itertools import combinations
 import string
@@ -77,12 +76,10 @@ def update_step(t, ag, agentdict, atts, Wij, params, **kwargs):
 #####  Simulation Run   #####
 #################################
 
-def dynSim(atts, wave, country, params, folder, dataset):
+def dynSim(filepath, atts, wave, params, predefined_agentlist):
     np.random.seed(params["seed"])
     
-    filepath = f"{folder}{dataset}-{country.lower()}.csv"
-    print(filepath)
-    agentlist, weights, ops, identity = initialise(params["n"], atts, wave, filepath)
+    agentlist, weights, ops, identity = initialise(filepath, wave, params["n"], predefined_agentlist, atts, params["seed"])
     print(f"Nr of agents: {len(agentlist)}: " , identity.value_counts())
 
 
@@ -122,14 +119,15 @@ def dynSim(atts, wave, country, params, folder, dataset):
 #####  MAIN   #####
 #################################
 if __name__=="__main__":
-    folder = "inputdata/" #"~/csh-research/projects/opinion-data-curation/data/clean/"
+    folder = ""
+    inputfolder = folder+"inputdata/" #"~/csh-research/projects/opinion-data-curation/data/clean/"
     dataset = "gesis"
     country= countryXdataset[dataset]
     atts = atts_datasets[dataset]
     edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
     params={
         "n": 1000,    # integer or "all"
-        "seed":42,
+        "seed":12,
         "T":100,
         "dt":1,
         "track_times":[0,100],
@@ -154,15 +152,19 @@ if __name__=="__main__":
 
     paramCombis = [(0.0,0.2,0.05), (0.4,0.0,0.05), (0.4,0.2,0.05)]
     
+    filepath = f"{inputfolder}{dataset}-{country.lower()}.csv"
     for eps, mu, lam in paramCombis:
         params["eps"] = eps
         params["mu"]  = mu
         params["lam"] = lam
         
+
+        predefined_agentlist = None if params["n"]=="all" else determine_agentlist(filepath, waves[dataset], params["n"], atts, params["seed"])
+
         for wave in waves[dataset]:
-            agentdict, simOut = dynSim(atts, wave, country, params, folder=folder, dataset=dataset)
+            agentdict, simOut = dynSim(filepath, atts, wave, params, predefined_agentlist)
             waveName = wave if type(wave)==int else f"{wave[0]}-{wave[-1]}"
-            filename = f"results/inferBNs-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}.csv"
+            filename = folder+f"results/inferBNs-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}.csv"
             simOut.to_csv(filename)
 
             print(eps,mu,lam, filename)
@@ -170,4 +172,4 @@ if __name__=="__main__":
     #coherenceArr = [[agentdict[ag]['coherence'] for ag in agentlist]]
     #nodeCentralityArr = [[agentdict[ag]['nodeCentrality'] for ag in agentlist]]
 
-# %%
+
