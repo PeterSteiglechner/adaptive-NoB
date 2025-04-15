@@ -26,6 +26,7 @@ parties = {
 #################################
 
 def update_step(t, ag, agentdict, atts, Wij, params, **kwargs):
+
     eps, mu, lam = (params["eps"], params["mu"], params["lam"])
     x = agentdict[ag]['x']
     BN_ag = agentdict[ag]['BN']
@@ -42,17 +43,19 @@ def update_step(t, ag, agentdict, atts, Wij, params, **kwargs):
         delBeta += hebbian(wij, x[i], x[j], eps)
         # Social
         if params["socInfType"]=="copy":
-            if len(agentdict[ag]['neighbours']) == 0:
+            if len(agentdict[ag]['neighbours']) == 0 and not params["socNetType"]=="observe-all":
                 currWij = 0
             else:
-                neighbour = np.random.choice(agentdict[ag]['neighbours'])
-                currWij = agentdict[neighbour]['BN'][e]
+                neighbours = agentdict[ag]['neighbours'] if params["socNetType"]=="observe-neighbours" else list(agentdict.keys())
+                sampled_neighbour = np.random.choice(neighbours)
+                currWij = agentdict[sampled_neighbour]['BN'][e]
         else:
             currWij = 0 if Wij(ag).empty else Wij(ag).loc[i,j]
         delBeta += socialinfluence(wij, currWij, mu)  
 
         BN_ag[e] = np.clip(wij + params["dt"] * delBeta, a_min=-1, a_max=1)
-
+        if e==("euth","eu") and ag == 896896.0:
+            pass
     # TODO insert here node updating. 
 
     # 
@@ -85,6 +88,7 @@ def dynSim(filepath, atts, wave, params, predefined_agentlist):
 
     agentdict = initialise_socialnetwork(agentlist, identity, ops, atts, params)
     agentlist = list(agentdict.keys())
+    agentlistOrig = np.copy(agentlist)
 
     if (params["socInfType"]=="co-occurence") or (params["socInfType"]=="correlation"):
         Wij = get_socialOmega(agentdict, agentlist, ops, atts, params)
@@ -93,25 +97,27 @@ def dynSim(filepath, atts, wave, params, predefined_agentlist):
 
     print("simulate", end="...")
     time = np.arange(0,params["T"], step=params["dt"])
+    results_over_time = []
     for t in time[1:]:
         if (t%10==0): 
             print(t, end=", ")
         np.random.shuffle(agentlist)
         for ag in agentlist:
             agentdict = update_step(t, ag, agentdict, atts, Wij, params)
-        #if t in params["track_times"]:
+        if t in params["track_times"]:
+            results_over_time.append([[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + list(ops.loc[ag, atts]) for ag in agentlistOrig])
         #    coherenceArr.append([agentdict[ag]['coherence'] for ag in agentlist])
         #    nodeCentralityArr.append([agentdict[ag]['nodeCentrality'] for ag in agentlist])
     print("done")
 
-    edgelist = [f"({e[0]},{e[1]})" for e in agentdict[agentlist[0]]['BN'].keys()]
+    edgelist = [f"({e[0]},{e[1]})" for e in agentdict[agentlistOrig[0]]['BN'].keys()]
     simOut = pd.DataFrame(
-        data=[[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + list(ops.loc[ag, atts]) for ag in agentlist], # x and w's (columns) per agent (row)
-        columns = edgelist + atts, index=agentlist)
-    simOut.loc[agentlist, "agent_weight"] = weights[agentlist]
-    simOut.loc[agentlist, "identity"] = identity[agentlist]
+        data=[[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + list(ops.loc[ag, atts]) for ag in agentlistOrig], # x and w's (columns) per agent (row)
+        columns = edgelist + atts, index=agentlistOrig)
+    simOut.loc[agentlistOrig, "agent_weight"] = weights[agentlistOrig]
+    simOut.loc[agentlistOrig, "identity"] = identity[agentlistOrig]
     simOut = simOut.reset_index()
-    return agentdict, simOut
+    return agentdict, simOut, results_over_time, agentlistOrig
 
 
 # %%
@@ -130,8 +136,8 @@ if __name__=="__main__":
         "seed":12,
         "T":100,
         "dt":1,
-        "track_times":[0,100],
-        "socNetType":"observe-neighbours",  # observe-neighbours or observe-all
+        "track_times": np.arange(0,100, 10),
+        "socNetType":"observe-all",  # observe-neighbours or observe-all
         "socInfType":"copy",   # correlation or co-occurence or copy(TODO)
         "eps":None, #filled later
         "mu":None, 
@@ -153,23 +159,40 @@ if __name__=="__main__":
     paramCombis = [(0.0,0.2,0.05), (0.4,0.0,0.05), (0.4,0.2,0.05)]
     
     filepath = f"{inputfolder}{dataset}-{country.lower()}.csv"
+    
+    predefined_agentlist = None if params["n"]=="all" else determine_agentlist(filepath, waves[dataset], params["n"], atts, params["seed"])
     for eps, mu, lam in paramCombis:
         params["eps"] = eps
         params["mu"]  = mu
         params["lam"] = lam
         
 
-        predefined_agentlist = None if params["n"]=="all" else determine_agentlist(filepath, waves[dataset], params["n"], atts, params["seed"])
-
         for wave in waves[dataset]:
-            agentdict, simOut = dynSim(filepath, atts, wave, params, predefined_agentlist)
+            agentdict, simOut, results_over_time, agentlistOrig = dynSim(filepath, atts, wave, params, predefined_agentlist)
+            if predefined_agentlist is not None:
+                agentdict = {ag:agentdict[ag] for ag in predefined_agentlist}
             waveName = wave if type(wave)==int else f"{wave[0]}-{wave[-1]}"
-            filename = folder+f"results/inferBNs-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}.csv"
-            simOut.to_csv(filename)
+            filename = folder+f"results/inferBNs-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}"
+            simOut.to_csv(filename+".csv")
 
             print(eps,mu,lam, filename)
-                            
-    #coherenceArr = [[agentdict[ag]['coherence'] for ag in agentlist]]
-    #nodeCentralityArr = [[agentdict[ag]['nodeCentrality'] for ag in agentlist]]
 
+            # Store results over time
+            edgelist = list(simOut.columns[1:-8])
+            sims = []
+            for t, res in zip(params["track_times"] , results_over_time):
+                sim = pd.DataFrame(
+                    data=res, # x and w's (columns) per agent (row)
+                    columns = edgelist + atts, index=agentlistOrig)
+                sim.loc[agentlistOrig, "agent_weight"] = simOut["agent_weight"]
+                sim.loc[agentlistOrig, "identity"] = simOut["identity"]
+                sim["t"] = t
+                sim = sim.reset_index()
+                sim = sim.rename(columns={"index":"ID"})
+                sims.append(sim)
+            sims = pd.concat(sims)
+            sims.to_csv(filename+"_overTime.csv")
+
+
+#%%
 
