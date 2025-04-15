@@ -55,8 +55,12 @@ def update_step(t, ag, agentdict, atts, Wij, params, **kwargs):
 
         BN_ag[e] = np.clip(wij + params["dt"] * delBeta, a_min=-1, a_max=1)
 
-    # TODO insert here node updating. 
-    
+    # node updating. 
+    for att, b in x.items():
+        options = [max(-1, b-params["belief_jump"]), b, min(1, b+params["belief_jump"])]
+        ps = glauber_probabilities(att, options, x, BN_ag, params["Temp"], atts)# att, options, beliefs, BN_ag, Temp, atts
+        x[att] = np.random.choice(options, p=ps)
+
     # 
 
     # SUMMARISE
@@ -104,14 +108,14 @@ def dynSim(filepath, atts, wave, params, predefined_agentlist):
         for ag in agentlist:
             agentdict = update_step(t, ag, agentdict, atts, Wij, params)
         if t in params["track_times"]:
-            results_over_time.append([[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + list(ops.loc[ag, atts]) for ag in agentlistOrig])
+            results_over_time.append([[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + [agentdict[ag]['x'][att] for att in atts] for ag in agentlistOrig])
         #    coherenceArr.append([agentdict[ag]['coherence'] for ag in agentlist])
         #    nodeCentralityArr.append([agentdict[ag]['nodeCentrality'] for ag in agentlist])
     print("done")
 
     edgelist = [f"({e[0]},{e[1]})" for e in agentdict[agentlistOrig[0]]['BN'].keys()]
     simOut = pd.DataFrame(
-        data=[[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + list(ops.loc[ag, atts]) for ag in agentlistOrig], # x and w's (columns) per agent (row)
+        data=[[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + [agentdict[ag]['x'][att] for att in atts] for ag in agentlistOrig], # x and w's (columns) per agent (row)
         columns = edgelist + atts, index=agentlistOrig)
     simOut.loc[agentlistOrig, "agent_weight"] = weights[agentlistOrig]
     simOut.loc[agentlistOrig, "identity"] = identity[agentlistOrig]
@@ -132,19 +136,21 @@ if __name__=="__main__":
         atts = atts_datasets[dataset]
         edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
         params={
-            "n": 2000,    # integer or "all"
-            "seed":1,
+            "n": 500,    # integer or "all"
+            "seed":4,
             "T":100,
             "dt":1,
-            "track_times": np.arange(0,100, 10),
+            "track_times": np.arange(0,100, 1),
             "socNetType":"observe-neighbours",  # observe-neighbours or observe-all
-            "socInfType":"co-occurence",   # correlation or co-occurence or copy
+            "socInfType":"copy",   # correlation or co-occurence or copy
             "eps":None, #filled later
             "mu":None, 
             "lam":None,
             "parties": parties[country], 
             "indegree":10, 
             "outdegree":0,
+            "belief_jump":0.1,
+            "Temp":1,
         }
         # waves defines a set of waves before and after 2021
         waves = {
@@ -172,7 +178,7 @@ if __name__=="__main__":
                 if predefined_agentlist is not None:
                     agentdict = {ag:agentdict[ag] for ag in predefined_agentlist}
                 waveName = wave if type(wave)==int else f"{wave[0]}-{wave[-1]}"
-                filename = folder+f"results/inferBNs-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}"
+                filename = folder+f"results/inferBNs+BeliefChange-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"beliefJump-{params['belief_jump']}-T{params['Temp']}"+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}"
                 simOut.to_csv(filename+".csv")
 
                 print(eps,mu,lam, filename)
