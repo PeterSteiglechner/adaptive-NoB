@@ -56,9 +56,11 @@ def update_step(t, ag, agentdict, atts, Wij, params, **kwargs):
         BN_ag[e] = np.clip(wij + params["dt"] * delBeta, a_min=-1, a_max=1)
 
     # node updating. 
+    # TODO: randomise? shuffle
     for att, b in x.items():
+        # options are b-0.1, b, b+0.1
         options = [max(-1, b-params["belief_jump"]), b, min(1, b+params["belief_jump"])]
-        ps = glauber_probabilities(att, options, x, BN_ag, params["Temp"], atts)# att, options, beliefs, BN_ag, Temp, atts
+        ps = glauber_probabilities(att, options, x, BN_ag, params["Temp"], atts)
         x[att] = np.random.choice(options, p=ps)
 
     # 
@@ -101,6 +103,8 @@ def dynSim(filepath, atts, wave, params, predefined_agentlist):
     print("simulate", end="...")
     time = np.arange(0,params["T"], step=params["dt"])
     results_over_time = []
+    
+    # simulate time steps
     for t in time[1:]:
         if (t%10==0): 
             print(t, end=", ")
@@ -136,8 +140,8 @@ if __name__=="__main__":
         atts = atts_datasets[dataset]
         edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
         params={
-            "n": 500,    # integer or "all"
-            "seed":4,
+            "n": 1000,    # integer or "all"
+            "seed":5,
             "T":100,
             "dt":1,
             "track_times": np.arange(0,100, 1),

@@ -203,3 +203,18 @@ def coherenceOther(bnEdges, opinion):
     atts = opinion.keys() if type(opinion)==dict else (opinion.index if type(opinion)==pd.Series else None)
     coherence_edges = [opinion[i]*opinion[j]*bnEdges[f"({i},{j})"] for i,j in list(combinations(atts, 2))]
     return np.sum(coherence_edges, axis=0)
+
+
+#################################
+#####  Probabilities to jump   #####
+#################################
+
+def glauber_probabilities(att, options, beliefs, BN_ag, Temp, atts):
+    H0 = np.sum([- BN_ag[(a1,a2)] * beliefs[a2] * beliefs[a1] for a1, a2 in combinations(atts, 2) if a1==att or a2==att ])
+    H = []
+    for opt in options:
+        beliefs[att] = opt
+        H.append(np.sum([- BN_ag[(a1,a2)] * beliefs[a2] * beliefs[a1] for a1, a2 in combinations(atts, 2) if a1==att or a2==att ]))
+    delH = np.array(H) - H0
+    ps = 1/(1+np.exp(1/Temp * delH)) / np.sum(1/(1+np.exp(1/Temp * delH)))
+    return ps
