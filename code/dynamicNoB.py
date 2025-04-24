@@ -239,7 +239,17 @@ if __name__=="__main__":
         (0.4,0.4,0.05, 0.01, "copy", "observe-neighbours"), 
         (0.4,0.4,0.05, 0.1, "copy", "observe-neighbours"), 
         (0.4,0.4,0.05, 1, "copy", "observe-neighbours"),
-        (0.4,0.4,0.05, 10, "copy", "observe-neighbours")
+        (0.4,0.4,0.05, 10, "copy", "observe-neighbours"), 
+        # NO NETWORK
+        (0.4,0.2,0.05, 0.01, "copy", "observe-all"), 
+        (0.4,0.2,0.05, 0.1, "copy", "observe-all"), 
+        (0.4,0.2,0.05, 1, "copy", "observe-all"),
+        (0.4,0.2,0.05, 10, "copy", "observe-all"),
+        # NO NETWORK + co-occurence
+        (0.4,0.2,0.05, 0.01, "co-occurence", "observe-all"), 
+        (0.4,0.2,0.05, 0.1, "co-occurence", "observe-all"), 
+        (0.4,0.2,0.05, 1, "co-occurence", "observe-all"),
+        (0.4,0.2,0.05, 10, "co-occurence", "observe-all"),
         ]
     
     resultsfolder = "results-dynNoB/"

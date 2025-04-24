@@ -109,6 +109,9 @@ def dynSim(filepath, wave, agentlist, atts, params):
         agentlist (list): Optional list of preselected agent IDs.
         atts (list): Names of belief dimensions (opinion attributes).
         params (dict): Configuration parameters including:
+            - "eps" (float): Strength of Hebbian Learning
+            - "mu" (float): Strength of Social Influence
+            - "lam" (float): Strength of edge weight regularisation 
             - "socInfType" (str): Type of social influence ("correlation", "co-occurence", "copy").
             - "socNetType" (str): Network structure ("observe-all", "observe-neighbours").
             - "parties" (list): Identity groups, excluding "none".

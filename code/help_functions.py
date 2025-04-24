@@ -156,7 +156,7 @@ def get_socialOmega(agentdict, agentlist, ops, atts, params):
         
         elif params["socNetType"] == "observe-all":
             observed_signs = {att: np.array([signOp(ops.loc[ag, att]) for ag in agentlist]) for att in atts}
-            W_cooc = [(i, j, np.mean(observed_signs[i]*observed_signs[j])) for i, j in combinations(atts)]
+            W_cooc = [(i, j, np.mean(observed_signs[i]*observed_signs[j])) for i, j in combinations(atts, 2)]
             W_cooc = pd.DataFrame(W_cooc, columns=["i", "j", "cooccurence"]).pivot_table(index="i", columns="j", values="cooccurence")
             return lambda ag: W_cooc
     
