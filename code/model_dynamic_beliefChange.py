@@ -3,7 +3,7 @@
 
 import numpy as np
 import pandas as pd
-import pingouin  # for partial correlation: pcorr
+#import pingouin  # for partial correlation: pcorr
 from itertools import combinations
 import string
 from help_functions import *
@@ -15,67 +15,82 @@ atts_datasets = {
     "autnes":[]
 }
 parties = {
-    "Germany": ["Linke", "Grüne", "SPD", "FDP", "CDU/CSU", "AfD", "none"],
-    "Netherlands": ["far left", "centre left", "centre", "centre right", "far right", "none"],
-    "Austria": ["Grüne", "SPÖ", "NEOS", "ÖVP", "FPÖ", "none"]
+    "Germany": ["Linke", "Grüne", "SPD", "FDP", "CDU/CSU", "AfD"],# "none",
+    "Netherlands": ["far left", "centre left", "centre", "centre right", "far right"], # "none"
+    "Austria": ["Grüne", "SPÖ", "NEOS", "ÖVP", "FPÖ"] # "none"
 }
 
 
 #################################
 #####  DYNAMIC MODEL   #####
 #################################
+def update_step(t, agent_id, agentdict, atts, Wij, params, **kwargs):
+    eps, mu, lam, dt = params["eps"], params["mu"], params["lam"], params["dt"]
+    socialInfl_type = params["socInfType"]
+    network_type = params["socNetType"]
+    belief_jump, temperature = params["belief_jump"], params["Temp"]
 
-def update_step(t, ag, agentdict, atts, Wij, params, **kwargs):
+    agent = agentdict[agent_id]
+    x = agent["x"]
+    belief_network = agent["BN"]
 
-    eps, mu, lam = (params["eps"], params["mu"], params["lam"])
-    x = agentdict[ag]['x']
-    BN_ag = agentdict[ag]['BN']
-    
-    #  EDGES - Hebbian + Social + Decay
-    edgelist = list(BN_ag.keys())
-    for n_edge in np.random.choice(range(len(edgelist)), size=len(edgelist), replace=False):      
-        e = edgelist[n_edge]
-        i,j = e
-        wij = BN_ag[e]
-        # Decay
-        delBeta = decay(wij, lam)
-        # Hebbian
-        delBeta += hebbian(wij, x[i], x[j], eps)
-        # Social
-        if params["socInfType"]=="copy":
-            if len(agentdict[ag]['neighbours']) == 0 and not params["socNetType"]=="observe-all":
-                currWij = 0
+    edgelist = list(belief_network.keys())
+    np.random.shuffle(edgelist)
+
+    for edge in edgelist:
+        i, j = edge
+        weight_ij = belief_network[edge]
+
+        # Decay + Hebbian
+        delta_beta = decay(weight_ij, lam) + hebbian(weight_ij, x[i], x[j], eps)
+
+        # Social Influence
+        if socialInfl_type == "copy":
+            if network_type == "observe-all":
+                neighbours = list(agentdict.keys())
             else:
-                neighbours = agentdict[ag]['neighbours'] if params["socNetType"]=="observe-neighbours" else list(agentdict.keys())
+                neighbours = agent.get("neighbours", [])
+            
+            if neighbours:
                 sampled_neighbour = np.random.choice(neighbours)
-                currWij = agentdict[sampled_neighbour]['BN'][e]
+                curr_weight = agentdict[sampled_neighbour]["BN"].get(edge, 0)
+            else:
+                curr_weight = np.nan
         else:
-            currWij = 0 if Wij(ag).empty else Wij(ag).loc[i,j]
-        delBeta += socialinfluence(wij, currWij, mu)  
+            curr_weight = 0 if Wij(agent_id).empty else Wij(agent_id).loc[i, j]
 
-        BN_ag[e] = np.clip(wij + params["dt"] * delBeta, a_min=-1, a_max=1)
+        if ~np.isnan(curr_weight): 
+            delta_beta += socialinfluence(weight_ij, curr_weight, mu)#
+        # Update weight with clipping
+        belief_network[edge] = np.clip(weight_ij + dt * delta_beta, -1, 1)
 
-    # node updating. 
-    # TODO: randomise? shuffle
-    for att, b in x.items():
+    # NODE UPDATING
+    items = list(x.items())
+    np.random.shuffle(items)
+    for att, b in items:
         # options are b-0.1, b, b+0.1
-        options = [max(-1, b-params["belief_jump"]), b, min(1, b+params["belief_jump"])]
-        ps = glauber_probabilities(att, options, x, BN_ag, params["Temp"], atts)
+        options = [max(-1, b - belief_jump), b, min(1, b + belief_jump)]
+        ps = glauber_probabilities(att, options, x, belief_network, temperature, atts)
         x[att] = np.random.choice(options, p=ps)
+ 
+    # Save updates
+    agent["BN"] = belief_network
+    agent["x"] = x
 
-    # 
+    # Tracking
+    # if t in params["track_times"]:
+    #     edge_weights = np.array([belief_network[e] for e in edgelist])
+    #     coherence_vals = edge_weights * np.array([x[i] * x[j] for i, j in edgelist])
+    #     # Node-level coherence
+    #     coherence_by_node = {
+    #         node: coherence_vals[[node in edge for edge in edgelist]].sum()
+    #         for node in atts
+    #     }
+    #     agent["coherence"] = sum(coherence_by_node.values())
+    #     agent["nodeCentrality"] = [
+    #         sum(abs(belief_network[e]) for e in edgelist if node in e) for node in atts
+    #     ]
 
-    # SUMMARISE
-    agentdict[ag]['BN'] = BN_ag
-    agentdict[ag]['x'] = x
-
-    if t in params["track_times"]:
-        edge_weights = np.array([BN_ag[e] for e in edgelist])
-        coherence_values = edge_weights * np.array([x[e[0]] * x[e[1]] for e in edgelist])    
-        coherence_dict = {n: coherence_values[np.array([n in e for e in edgelist])].sum() for n in atts}
-        coherence_node = [coherence_dict[n] for n in atts]
-        agentdict[ag]["coherence"] =  np.sum(coherence_node)
-        agentdict[ag]["nodeCentrality"] = [sum(abs(BN_ag[e]) for e in edgelist if n in e) for n in atts]
     return agentdict
 
     
@@ -84,47 +99,93 @@ def update_step(t, ag, agentdict, atts, Wij, params, **kwargs):
 #####  Simulation Run   #####
 #################################
 
-def dynSim(filepath, atts, wave, params, predefined_agentlist):
+def dynSim(filepath, wave, agentlist, atts, params):
+    """
+    Run a dynamic simulation (nodes + edges) with initialized agent opinion and identity from panel data.
+
+    Args:
+        filepath (str): Path to input data.
+        wave (int or list): Wave number or list of wave numbers.
+        agentlist (list): Optional list of preselected agent IDs.
+        atts (list): Names of belief dimensions (opinion attributes).
+        params (dict): Configuration parameters including:
+            - "socInfType" (str): Type of social influence ("correlation", "co-occurence", "copy").
+            - "socNetType" (str): Network structure ("observe-all", "observe-neighbours").
+            - "parties" (list): Identity groups, excluding "none".
+            - "indegree" (float): In-group connection probability.
+            - "outdegree" (float): Out-group connection probability.
+            - "initial_w" (float): Initial edge weight in belief network.
+            - "seed" (int): Random seed for reproducibility.
+            - "T" (float): Total time.
+            - "dt" (float): Time step.
+            - "track_times" (list): Time steps to track results.
+            - "Temp" (float): Temperature for belief updating
+            - "belief_jump" (float): step of considered belief change 
+
+    Returns:
+        simOut (pd.DataFrame): Final belief network weights and opinions for each agent.
+        snapshots (pd.DataFrame): Belief states recorded at specified time steps.
+        agent_ids (list): Ordered list of agent IDs (original order).
+    """
     np.random.seed(params["seed"])
+
+    # Initialize agents
+    agent_ids, weights, opinions, identity = initialise(
+        filepath, wave, params["n"], agentlist, atts, params["seed"]
+    )
+    print(f"Nr of agents: {len(agent_ids)} | Identity counts:\n{identity.value_counts()}")
+
+    # Set up the agent social network
+    agent_dict = initialise_socialnetwork(agent_ids, identity, opinions, params)
+    agent_ids = list(agent_dict.keys())
+    original_agent_ids = list(agent_ids)  # Ensure a true copy of the initial order
     
-    agentlist, weights, ops, identity = initialise(filepath, wave, params["n"], predefined_agentlist, atts, params["seed"])
-    print(f"Nr of agents: {len(agentlist)}: " , identity.value_counts())
-
-
-    agentdict = initialise_socialnetwork(agentlist, identity, ops, atts, params)
-    agentlist = list(agentdict.keys())
-    agentlistOrig = np.copy(agentlist)
-
-    if (params["socInfType"]=="co-occurence") or (params["socInfType"]=="correlation"):
-        Wij = get_socialOmega(agentdict, agentlist, ops, atts, params)
-    else:
-        Wij = None
-
     print("simulate", end="...")
-    time = np.arange(0,params["T"], step=params["dt"])
+    time_steps = np.arange(0, params["T"], step=params["dt"])
     results_over_time = []
-    
-    # simulate time steps
-    for t in time[1:]:
-        if (t%10==0): 
+
+    # Main simulation loop (starts at time[1] to skip t=0)
+    for t in time_steps[1:]:
+        if t % 10 == 0:
             print(t, end=", ")
-        np.random.shuffle(agentlist)
-        for ag in agentlist:
-            agentdict = update_step(t, ag, agentdict, atts, Wij, params)
-        if t in params["track_times"]:
-            results_over_time.append([[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + [agentdict[ag]['x'][att] for att in atts] for ag in agentlistOrig])
-        #    coherenceArr.append([agentdict[ag]['coherence'] for ag in agentlist])
-        #    nodeCentralityArr.append([agentdict[ag]['nodeCentrality'] for ag in agentlist])
+
+        # Set up social influence matrix if needed
+        socInfType = params["socInfType"]
+        if socInfType in {"co-occurence", "correlation"}:
+            Wij = get_socialOmega(agent_dict, agent_ids, opinions, atts, params)
+        else:
+            Wij = None
+
+        np.random.shuffle(agent_ids)
+
+        for ag in agent_ids:
+            agent_dict = update_step(t, ag, agent_dict, atts, Wij, params)
+
+        # Record results at tracked times
+        if t in params["track_times"] or t==time_steps[-1]:
+            snapshot = [
+                [agent_dict[ag]['BN'][e] for e in agent_dict[ag]['BN']] +
+                [agent_dict[ag]['x'][att] for att in atts]
+                for ag in original_agent_ids
+            ]
+            results_over_time.append(snapshot)
     print("done")
 
-    edgelist = [f"({e[0]},{e[1]})" for e in agentdict[agentlistOrig[0]]['BN'].keys()]
-    simOut = pd.DataFrame(
-        data=[[agentdict[ag]['BN'][e] for e in agentdict[ag]['BN'].keys()] + [agentdict[ag]['x'][att] for att in atts] for ag in agentlistOrig], # x and w's (columns) per agent (row)
-        columns = edgelist + atts, index=agentlistOrig)
-    simOut.loc[agentlistOrig, "agent_weight"] = weights[agentlistOrig]
-    simOut.loc[agentlistOrig, "identity"] = identity[agentlistOrig]
-    simOut = simOut.reset_index()
-    return agentdict, simOut, results_over_time, agentlistOrig
+    # Create final output DataFrame
+    edge_labels = [f"({i},{j})" for i, j in agent_dict[original_agent_ids[0]]['BN']]
+    snapshots = []
+    for t, res in zip(params["track_times"] , results_over_time):
+        snap = pd.DataFrame(
+            data=res, # edge weights and beliefs (columns) per agent (row)
+            columns = edge_labels + atts, index=original_agent_ids)
+        snap.loc[original_agent_ids, "agent_weight"] = weights.loc[original_agent_ids]
+        snap.loc[original_agent_ids, "identity"] = identity.loc[original_agent_ids]
+        snap["t"] = t
+        snap = snap.reset_index(names="agent_id")
+        snapshots.append(snap)
+    snapshots_df = pd.concat(snapshots)
+
+    return snapshots[-1], snapshots_df, original_agent_ids
 
 
 # %%
@@ -133,12 +194,10 @@ def dynSim(filepath, atts, wave, params, predefined_agentlist):
 #################################
 if __name__=="__main__":
     folder = ""
-    inputfolder = folder+"inputdata/" #"~/csh-research/projects/opinion-data-curation/data/clean/"
+    inputfolder = folder+"inputdata/" 
     dataset = "liss"
     for dataset in ["liss", "gesis"]:
         country= countryXdataset[dataset]
-        atts = atts_datasets[dataset]
-        edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
         params={
             "n": 1000,    # integer or "all"
             "seed":5,
@@ -153,9 +212,12 @@ if __name__=="__main__":
             "parties": parties[country], 
             "indegree":10, 
             "outdegree":0,
+            "initial_w":0.,
             "belief_jump":0.1,
-            "Temp":1,
+            "Temp":None,
         }
+        atts = atts_datasets[dataset]
+        edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
         # waves defines a set of waves before and after 2021
         waves = {
             "gesis":[list(range(1,20)), list(range(20,28))], 
@@ -165,43 +227,44 @@ if __name__=="__main__":
                 ], 
             "autnes":[],
         }
-
-        paramCombis = [(0.0,0.2,0.05), (0.4,0.0,0.05), (0.4,0.2,0.05)]
         
         filepath = f"{inputfolder}{dataset}-{country.lower()}.csv"
         
-        predefined_agentlist = None if params["n"]=="all" else determine_agentlist(filepath, waves[dataset], params["n"], atts, params["seed"])
-        for eps, mu, lam in paramCombis:
+        agentlist = None if params["n"]=="all" else determine_agentlist(filepath, waves[dataset], params["n"], atts, params["seed"])
+
+        # base scenario:
+        # (0.4,0.2,0.05, Temp, "copy", "observe-neighbours") where Temp = 0.01, 0.1, 1, 10
+        #
+        paramCombis = [
+            # eps, mu, lam, Temp, socInfType, socNetType
+            (0.4,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
+            (0.4,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
+            (0.4,0.2,0.05, 1, "copy", "observe-neighbours")
+            ]
+        
+        resultsfolder = folder+"results/"
+
+        for eps, mu, lam, Temp, socInfType, socNetType in paramCombis:
             params["eps"] = eps
             params["mu"]  = mu
             params["lam"] = lam
+            params["Temp"] = Temp 
+            params["socInfType"] = socInfType
+            params["socNetType"] = socNetType
             
 
             for wave in waves[dataset]:
-                agentdict, simOut, results_over_time, agentlistOrig = dynSim(filepath, atts, wave, params, predefined_agentlist)
-                if predefined_agentlist is not None:
-                    agentdict = {ag:agentdict[ag] for ag in predefined_agentlist}
+                simOut, snapshots, original_agent_ids = dynSim(filepath, wave, agentlist, atts, params)
+                
                 waveName = wave if type(wave)==int else f"{wave[0]}-{wave[-1]}"
-                filename = folder+f"results/inferBNs+BeliefChange-dynamic_{dataset.lower()}-n-{params['n']}_{params['socInfType']}-{params['socNetType']}"+(f"(Stoch-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in params["socNetType"] else "")+f"beliefJump-{params['belief_jump']}-T{params['Temp']}"+f"_{waveName}-{country}_eps{eps}_mu{mu}_lam{lam}_seed{params['seed']}"
+                socNetName = f"{socNetType}"+(f"(Stoch-{len(params['parties'])}-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in socNetType else "")
+                
+                filename = resultsfolder+f"dynamicNoB_fromPanelData_{dataset.lower()}-{country}_{waveName}_n-{params['n']}_{socInfType}-"+socNetName+f"_beliefJump-{params['belief_jump']}-T{Temp}"+f"_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
+
+                # Store final results
                 simOut.to_csv(filename+".csv")
-
-                print(eps,mu,lam, filename)
-
                 # Store results over time
-                edgelist = list(simOut.columns[1:-8])
-                sims = []
-                for t, res in zip(params["track_times"] , results_over_time):
-                    sim = pd.DataFrame(
-                        data=res, # x and w's (columns) per agent (row)
-                        columns = edgelist + atts, index=agentlistOrig)
-                    sim.loc[agentlistOrig, "agent_weight"] = simOut["agent_weight"]
-                    sim.loc[agentlistOrig, "identity"] = simOut["identity"]
-                    sim["t"] = t
-                    sim = sim.reset_index()
-                    sim = sim.rename(columns={"index":"ID"})
-                    sims.append(sim)
-                sims = pd.concat(sims)
-                sims.to_csv(filename+"_overTime.csv")
+                snapshots.to_csv(filename+"_overTime.csv")
 
 
 #%%
