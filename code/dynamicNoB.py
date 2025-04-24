@@ -1,4 +1,6 @@
-# This file contains the very simple Network of Beliefs
+# This file contains an extension of the network of beliefs to allow both dynamic node values and dynamic edge weights. 
+# Note: the network of beliefs contains only personal belief edges
+
 
 import numpy as np
 import pandas as pd
