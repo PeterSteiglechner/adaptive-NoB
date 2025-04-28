@@ -196,26 +196,112 @@ def custom_boxplot_mean(ax, data, x, y, hue=None, palette="Set2", dodge=True, or
     return ax, leg
 
 
+def plot_results_over_time(
+    sims, feature, partyColsDict, axs, n_sample=30
+):
+    # Handle axes
+    if isinstance(axs, (list, tuple)):
+        ax, ax2 = axs
+    else:
+        ax, ax2 = axs, None
 
-def plot_results_over_time(filename, simOut, agentlistOrig, e, partyColsDict, country, ax):
-    sims = pd.read_csv(filename+"_overTime.csv")
-    sampledata = sims.pivot_table(index="ID", columns="t", values=e).sample(30).T
-    ids = list(sampledata.columns)
-    cols = simOut.set_index("index").loc[ids, "identity"].map(partyColsDict[country])
-    cols = cols.fillna("grey")
-    sims.pivot_table(index="ID", columns="t", values=e).mean().T.plot(alpha=1, lw=3, label="", legend=False, ax=ax) # marker="o", markersize=1,
-    ax.set_title(e)
-    sampledata.plot(alpha=0.2, lw=0.4, label="",  legend=False, ax=ax, color=cols) # marker="o", markersize=1,
-    sims["identity"] = [simOut.loc[simOut["index"]==id, "identity"].values for id in agentlistOrig]*int(len(sims)/len(agentlistOrig))
-    
-    a = sims.pivot_table(index="ID", columns="t", values=e).loc[simOut["index"]]
+    # Pivot table to get feature values over time per agent
+    feature_over_time = sims.pivot_table(index="agent_id", columns="t", values=feature)
 
-    a["identity"] =  simOut.set_index("index").loc[agentlistOrig, "identity"]
+    # Sample a subset of agents
+    assert (n_sample<= len(sims.agent_id.unique())), "n_sample is larger than the number of agents"
+    sampled_data = feature_over_time.sample(n=n_sample, replace=False)
+
+    # Map agent IDs to their political colors
+    agent_colors = (
+        sims.loc[sims.t==0]
+        .set_index("agent_id")
+        .loc[sampled_data.index, "identity"]
+        .map(partyColsDict)
+        .fillna("grey")
+    )
+
+    # # Plot average trajectory
+    # feature_over_time.mean().plot(ax=ax, alpha=1, lw=3, label="", legend=False)
     
+    a = sims.groupby(["identity", "t"])[feature].mean().reset_index()
+    for group in a.identity.unique():
+        a.loc[a.identity==group].plot(x="t", y=feature, ax=ax, alpha=1, lw=3, label="", legend=False, color=partyColsDict[group])
+
+    # Plot sampled agent trajectories
+    sampled_data.T.reset_index().plot(x="t", ax=ax, alpha=0.2, lw=0.4, label="", legend=False, color=agent_colors)
+
     a = a.groupby("identity").mean().T
-    cols = ["grey" if p=="none" or p=="other" or p==np.nan else partyColsDict[country][p] for p in a.columns]
-    a.plot(alpha=0.5, lw=3, label="", legend=False, ax=ax, color=cols)
+    # cols = ["grey" if p=="none" or p=="other" or p==np.nan else partyColsDict[country][p] for p in a.columns]
+    # a.plot(alpha=0.5, lw=3, label="", legend=False, ax=ax, color=cols)
     
-    #sims.groupby("identity")[e]#.pivot_table(index="ID", columns="t", values=e).mean().T.plot(alpha=1, lw=3, label="", marker="o", markersize=1, legend=False)
-    return ax
 
+    ax.set_title(feature)
+
+    # If second axis provided, plot the distribution at final timestep
+    if ax2:
+        final_timestep = sims["t"].max()
+        final_values = sims.loc[sims["t"] == final_timestep]
+
+        sns.histplot(final_values, y=feature, kde=True, ax=ax2, color="blue", alpha=0.3)
+        ax2.axis("off")
+        ax2.set_xlim(left=0)
+
+    return axs
+
+
+
+      
+def frobenius_distance(edgelist1, edgelist2):
+        return sum([(edgelist1[e]-edgelist2[e])**2 for e, w in edgelist1.items()])**0.5
+    
+def rowPlot(sim, axs, key, eps, mu, c, legTitle, edgeNamesTuple, atts):      
+    
+    sns.histplot(coherence(sim, atts), x="coherence", ax=axs["coh"+key], kde=True, color=c, alpha=0.5)
+    axs["coh"+key].set_xlim(-1, len(atts)/2*(len(atts)-1))
+
+    for att in atts:
+        sns.kdeplot(sim, x=att, ax=axs["ops"+key], color=c, alpha=0.5, label=eps if att=="a" and key=="eps" else (mu if att=="a" and key=="mu" else None))
+    axs["ops"+key].set_xlim(-1, 1)
+    axs["ops"+key].legend(title=legTitle)
+    axs["ops"+key].set_xlabel("opinion scores")
+
+    for e in edgeNamesTuple:
+        sns.kdeplot(sim, x=e, ax=axs["edges"+key], color=c, alpha=0.3)
+    axs["edges"+key].set_xlim(-1, 1)
+    axs["edges"+key].set_xlabel("edge weights")
+    
+    
+    frobs = []
+    for p, edgelist1 in sim[edgeNamesTuple].iterrows():
+        for q, edgelist2 in sim.loc[:p, edgeNamesTuple].iterrows():
+            frobs.append(frobenius_distance(edgelist1, edgelist2))
+    sns.histplot(frobs, ax=axs["Frob"+key], kde=True, color=c, alpha=0.5)
+    axs["Frob"+key].set_xlabel("BN pairwise\nfrobenius distances")
+    return axs
+
+
+def compare(epsD, muD, lam, T, inf, net, epsarr, muarr, seed, M, n_ag, ngroups, indegree, outdegree, belief_jump, resultsfolder, edgeNamesTuple, atts ):
+    
+    fig, axs = plt.subplot_mosaic([[a+"eps" for a in ["coh", "ops", "edges", "Frob"]], [a+"mu" for a in ["coh", "ops", "edges", "Frob"]]])
+
+    fig.suptitle(fr"$\epsilon={epsD}$ (default), $\mu={muD}$ (default), $\lambda={lam}$, Temp={T}, {inf}, {net}, seed-{seed}", fontsize=bigfs)
+
+    for eps, c in zip(epsarr, ["green", "orange", "tomato"]):
+        initial_w = 0.1  if (eps,muD,lam)==(0.,0.,0.) else 0.0
+        fname = resultsfolder+f"dynamicNoB_M-{M}_n-{n_ag}_{inf}-{net}"+(f"(Stoch-{ngroups}-Block-{indegree}-{outdegree})" if "neighbours" in net else "")+f"_beliefJump-{belief_jump}-T{T}"+f"_eps{eps}_mu{muD}_lam{lam}_initialW-{initial_w}_seed{seed}"
+        sim = pd.read_csv(fname+".csv")
+
+        rowPlot(sim, axs, "eps", eps, muD, c, fr"Hebbian $\epsilon$", edgeNamesTuple, atts)
+    
+    for mu, c in zip(muarr, ["green", "orange", "tomato"]):
+        initial_w = 0.1  if (epsD,mu,lam)==(0.,0.,0.) else 0.0
+        fname = resultsfolder+f"dynamicNoB_M-{M}_n-{n_ag}_{inf}-{net}"+(f"(Stoch-{ngroups}-Block-{indegree}-{outdegree})" if "neighbours" in net else "")+f"_beliefJump-{belief_jump}-T{T}"+f"_eps{epsD}_mu{mu}_lam{lam}_initialW-{initial_w}_seed{seed}"
+        sim = pd.read_csv(fname+".csv")
+        rowPlot(sim, axs, "mu", epsD, mu, c, fr"Social $\mu$", edgeNamesTuple, atts)
+        
+    for k, ax in axs.items():
+        ax.set_ylabel("")
+        ax.set_yticks([])
+    fig.tight_layout()
+    return 

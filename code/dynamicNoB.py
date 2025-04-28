@@ -188,14 +188,14 @@ def dynSim_NoB(agent_ids, atts, params):
 #####  MAIN   #####
 #################################
 if __name__=="__main__":
-
+    T = 500
     params = {
-        "seed":1,
+        "seed":3,
         "n": 100,
-        "T":100,
+        "T":T,
         "dt":1,
         "M": 4, # number of beliefs
-        "track_times": np.arange(0,100, 1),
+        "track_times": np.arange(0,T, 10),
         "socNetType":"observe-neighbours",  # observe-neighbours or observe-all
         "socInfType":None,   # correlation or co-occurence or copy
         "eps":None,
@@ -204,7 +204,7 @@ if __name__=="__main__":
         "parties": [], 
         "indegree":10, 
         "outdegree":0,
-        "initial_w":0.,
+        "initial_w":0.0,
         "belief_jump":0.1,
         "Temp":None,
     }
@@ -217,41 +217,66 @@ if __name__=="__main__":
     # (0.4,0.2,0.05, Temp, "copy", "observe-neighbours") where Temp = 0.01, 0.1, 1, 10
     #     
     paramCombis = [
-        # eps, mu, lam, Temp, socInfType, socNetType
-        (0.4,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
-        (0.4,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
-        (0.4,0.2,0.05, 1, "copy", "observe-neighbours"),
-        (0.4,0.2,0.05, 10, "copy", "observe-neighbours"),
-        # EDGES FIXED
-        (0.0,0.0,0.00, 0.01, "co-occurence", "observe-neighbours"),
-        (0.0,0.0,0.00, 0.1, "co-occurence", "observe-neighbours"),
-        (0.0,0.0,0.00, 1, "co-occurence", "observe-neighbours"),
-        (0.0,0.0,0.00, 10, "co-occurence", "observe-neighbours"),
-        # CO-OCCURENCE
-        (0.4,0.2,0.05, 0.01, "co-occurence", "observe-neighbours"),
-        (0.4,0.2,0.05, 0.1, "co-occurence", "observe-neighbours"),
-        (0.4,0.2,0.05, 1, "co-occurence", "observe-neighbours"),
-        (0.4,0.2,0.05, 10, "co-occurence", "observe-neighbours"),
-        # LESS HEBBIAN
-        (0.05,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
-        (0.05,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
-        (0.05,0.2,0.05, 1, "copy", "observe-neighbours"),
-        (0.05,0.2,0.05, 10, "copy", "observe-neighbours"),
-        # MORE SOCIAL
-        (0.4,0.4,0.05, 0.01, "copy", "observe-neighbours"), 
-        (0.4,0.4,0.05, 0.1, "copy", "observe-neighbours"), 
-        (0.4,0.4,0.05, 1, "copy", "observe-neighbours"),
-        (0.4,0.4,0.05, 10, "copy", "observe-neighbours"), 
-        # NO NETWORK
-        (0.4,0.2,0.05, 0.01, "copy", "observe-all"), 
-        (0.4,0.2,0.05, 0.1, "copy", "observe-all"), 
-        (0.4,0.2,0.05, 1, "copy", "observe-all"),
-        (0.4,0.2,0.05, 10, "copy", "observe-all"),
-        # NO NETWORK + co-occurence
-        (0.4,0.2,0.05, 0.01, "co-occurence", "observe-all"), 
-        (0.4,0.2,0.05, 0.1, "co-occurence", "observe-all"), 
-        (0.4,0.2,0.05, 1, "co-occurence", "observe-all"),
-        (0.4,0.2,0.05, 10, "co-occurence", "observe-all"),
+        # # eps, mu, lam, Temp, socInfType, socNetType
+        # (0.4,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
+        # (0.4,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
+        # (0.4,0.2,0.05, 1, "copy", "observe-neighbours"),
+        # (0.4,0.2,0.05, 10, "copy", "observe-neighbours"),
+        # # EDGES FIXED
+        # (0.0,0.0,0.00, 0.01, "co-occurence", "observe-neighbours"),
+        # (0.0,0.0,0.00, 0.1, "co-occurence", "observe-neighbours"),
+        # (0.0,0.0,0.00, 1, "co-occurence", "observe-neighbours"),
+        # (0.0,0.0,0.00, 10, "co-occurence", "observe-neighbours"),
+        # # CO-OCCURENCE
+        # (0.4,0.2,0.05, 0.01, "co-occurence", "observe-neighbours"),
+        # (0.4,0.2,0.05, 0.1, "co-occurence", "observe-neighbours"),
+        # (0.4,0.2,0.05, 1, "co-occurence", "observe-neighbours"),
+        # (0.4,0.2,0.05, 10, "co-occurence", "observe-neighbours"),
+        # # LESS Social
+        # (0.4,0.05,0.05, 0.01, "copy", "observe-neighbours"), 
+        # (0.4,0.05,0.05, 0.1, "copy", "observe-neighbours"), 
+        # (0.4,0.05,0.05, 1, "copy", "observe-neighbours"),
+        # (0.4,0.05,0.05, 10, "copy", "observe-neighbours"),
+        # # LESS HEBBIAN
+        # (0.05,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
+        # (0.05,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
+        # (0.05,0.2,0.05, 1, "copy", "observe-neighbours"),
+        # (0.05,0.2,0.05, 10, "copy", "observe-neighbours"),
+        # # MORE HEBBIAN
+        # (0.8,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
+        # (0.8,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
+        # (0.8,0.2,0.05, 1, "copy", "observe-neighbours"),
+        # (0.8,0.2,0.05, 10, "copy", "observe-neighbours"),
+        # # MORE SOCIAL
+        # (0.4,0.4,0.05, 0.01, "copy", "observe-neighbours"), 
+        # (0.4,0.4,0.05, 0.1, "copy", "observe-neighbours"), 
+        # (0.4,0.4,0.05, 1, "copy", "observe-neighbours"),
+        # (0.4,0.4,0.05, 10, "copy", "observe-neighbours"), 
+        # # No decay
+        # (0.4,0.2,0.0, 0.01, "copy", "observe-neighbours"), 
+        # (0.4,0.2,0.0, 0.1, "copy", "observe-neighbours"), 
+        # (0.4,0.2,0.0, 1, "copy", "observe-neighbours"),
+        # (0.4,0.2,0.0, 10, "copy", "observe-neighbours"), 
+        # No decay; Much social; Little Hebbian
+        (0.05,0.4,0.0, 0.01, "copy", "observe-neighbours"), 
+        (0.05,0.4,0.0, 0.1, "copy", "observe-neighbours"), 
+        (0.05,0.4,0.0, 1, "copy", "observe-neighbours"),
+        (0.05,0.4,0.0, 10, "copy", "observe-neighbours"), 
+        # # MORE SOCIAL + HEBBIAN
+        # (0.8,0.4,0.05, 0.01, "copy", "observe-neighbours"), 
+        # (0.8,0.4,0.05, 0.1, "copy", "observe-neighbours"), 
+        # (0.8,0.4,0.05, 1, "copy", "observe-neighbours"),
+        # (0.8,0.4,0.05, 10, "copy", "observe-neighbours"), 
+        # # NO NETWORK
+        # (0.4,0.2,0.05, 0.01, "copy", "observe-all"), 
+        # (0.4,0.2,0.05, 0.1, "copy", "observe-all"), 
+        # (0.4,0.2,0.05, 1, "copy", "observe-all"),
+        # (0.4,0.2,0.05, 10, "copy", "observe-all"),
+        # # NO NETWORK + co-occurence
+        # (0.4,0.2,0.05, 0.01, "co-occurence", "observe-all"), 
+        # (0.4,0.2,0.05, 0.1, "co-occurence", "observe-all"), 
+        # (0.4,0.2,0.05, 1, "co-occurence", "observe-all"),
+        # (0.4,0.2,0.05, 10, "co-occurence", "observe-all"),
         ]
     
     resultsfolder = "results-dynNoB/"
