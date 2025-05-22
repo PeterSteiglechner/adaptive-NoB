@@ -1,6 +1,6 @@
 # This file contains an extension of the network of beliefs to allow both dynamic node values and dynamic edge weights. 
-# Note: the network of beliefs contains only personal belief edges
-
+# Note: the network of beliefs contains only personal belief edges.
+# ADD: we now also consider social updating.
 
 import numpy as np
 import pandas as pd
@@ -8,7 +8,7 @@ import pandas as pd
 from itertools import combinations
 #import copy
 import string
-from help_functions import get_socialOmega, initialise_socialnetwork, glauber_probabilities
+from help_functions import get_socialOmega, initialise_socialnetwork, glauber_probabilities_withSocial
 from help_functions import hebbian, socialinfluence, socialinfluenceMult, decay
 
 #################################
@@ -18,7 +18,10 @@ def update_step(t, agent_id, agentdict, atts, Wij, params, **kwargs):
     eps, mu, lam, dt = params["eps"], params["mu"], params["lam"], params["dt"]
     socialInfl_type = params["socInfType"]
     network_type = params["socNetType"]
-    belief_jump, temperature = params["belief_jump"], params["Temp"]
+    #belief_jump, temperature = params["belief_jump"], params["Temp"]
+    belief_options, temperature = params["belief_options"], params["Temp"]
+    social_edge_weight = params["social_edge_weight"]
+
 
     agent = agentdict[agent_id]
     x = agent["x"]
@@ -59,10 +62,11 @@ def update_step(t, agent_id, agentdict, atts, Wij, params, **kwargs):
     items = list(x.items())
     np.random.shuffle(items)
     for att, b in items:
-        # options are b-0.1, b, b+0.1
-        options = [max(-1, b - belief_jump), b, min(1, b + belief_jump)]
-        ps = glauber_probabilities(att, options, x, belief_network, temperature, atts)
-        x[att] = np.random.choice(options, p=ps)
+        soc_beliefs = [agentdict[ag]["x"][att] for ag in neighbours] 
+        # options are M points in -1...1
+        #options = [max(-1, b - belief_jump), b, min(1, b + belief_jump)]
+        ps = glauber_probabilities_withSocial(att, belief_options, x, belief_network, temperature, atts, soc_beliefs, social_edge_weight, beta_pers=1, beta_soc=1)
+        x[att] = np.random.choice(belief_options, p=ps)
  
     # Save updates
     agent["BN"] = belief_network
@@ -114,7 +118,8 @@ def dynSim_NoB(agent_ids, atts, params):
             - "dt" (float): Time step.
             - "track_times" (list): Time steps to track results.
             - "Temp" (float): Temperature for belief updating
-            - "belief_jump" (float): step of considered belief change 
+            - "belief_options" (list): possible belief states
+            - "social_edge_weight" (float): fixed edge weight of a social link (for node updating)
 
     Returns:
         simOut (pd.DataFrame): Final belief network weights and opinions for each agent.
@@ -125,24 +130,28 @@ def dynSim_NoB(agent_ids, atts, params):
 
     # Initialize opinions randomly in [-1, 1]
     opinions = pd.DataFrame(
-        [np.random.uniform(-1, 1, size=len(atts)) for agent in agent_ids],
+        [np.random.choice(params["belief_options"], replace=True, size=len(atts)) for agent in agent_ids],
         index=agent_ids, columns=atts
     )
     identity = pd.Series("none", index=agent_ids)
 
     # Initialize agent network
     agent_dict = initialise_socialnetwork(agent_ids, identity, opinions, params)
+    neighbours_dict = {agname: ag["neighbours"] for agname, ag in agent_dict.items()}
+
     agent_ids = list(agent_dict.keys())
     original_agent_ids = list(agent_ids)  # Ensure a true copy of the initial order
 
     print("simulate", end="...")
     time_steps = np.arange(0, params["T"]+1, step=params["dt"])
+    
     snapshot = [
                 [agent_dict[ag]['BN'][e] for e in agent_dict[ag]['BN']] +
                 [agent_dict[ag]['x'][att] for att in atts]
                 for ag in original_agent_ids
             ]
     results_over_time = [snapshot]
+    
     # Main simulation loop (starts at time[1] to skip t=0)
     for t in time_steps[1:]:
         if t % 10 == 0:
@@ -184,7 +193,7 @@ def dynSim_NoB(agent_ids, atts, params):
         snapshots.append(snap)
     snapshots_df = pd.concat(snapshots)
 
-    return snapshots[-1], snapshots_df, original_agent_ids
+    return snapshots[-1], snapshots_df, original_agent_ids, neighbours_dict
 
 
 # %%
@@ -194,11 +203,11 @@ def dynSim_NoB(agent_ids, atts, params):
 if __name__=="__main__":
     T = 100
     params = {
-        "seed":1,
-        "n": 100,
+        "seed":np.random.randint(100),
+        "n": 10,
         "T":T,
         "dt":1,
-        "M": 4, # number of beliefs
+        "M": 10, # number of beliefs
         "track_times": np.arange(0,T+1, 1),
         "socNetType":"observe-neighbours",  # observe-neighbours or observe-all
         "socInfType":None,   # correlation or co-occurence or copy
@@ -208,9 +217,11 @@ if __name__=="__main__":
         "parties": [], 
         "indegree":10, 
         "outdegree":0,
-        "initial_w":0.0,
-        "belief_jump":0.1,
+        "initial_w":0.4,
+        #"belief_jump":0.1,
         "Temp":None,
+        "belief_options": np.linspace(-1,1,7), 
+        "social_edge_weight": 0.0
     }
     atts = list(string.ascii_lowercase[:params["M"]])
     edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
@@ -221,71 +232,10 @@ if __name__=="__main__":
     # (0.4,0.2,0.05, Temp, "copy", "observe-neighbours") where Temp = 0.01, 0.1, 1, 10
     #     
     paramCombis = [
-        # # eps, mu, lam, Temp, socInfType, socNetType
-        # (0.4,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
-        (0.4,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
-        # (0.4,0.2,0.05, 1, "copy", "observe-neighbours"),
-        # (0.4,0.2,0.05, 10, "copy", "observe-neighbours"),
-        # # EDGES FIXED
-        # (0.0,0.0,0.00, 0.01, "co-occurence", "observe-neighbours"),
-        # (0.0,0.0,0.00, 0.1, "co-occurence", "observe-neighbours"),
-        # (0.0,0.0,0.00, 1, "co-occurence", "observe-neighbours"),
-        # (0.0,0.0,0.00, 10, "co-occurence", "observe-neighbours"),
-        # # CO-OCCURENCE
-        # (0.4,0.2,0.05, 0.01, "co-occurence", "observe-neighbours"),
-        # (0.4,0.2,0.05, 0.1, "co-occurence", "observe-neighbours"),
-        # (0.4,0.2,0.05, 1, "co-occurence", "observe-neighbours"),
-        # (0.4,0.2,0.05, 10, "co-occurence", "observe-neighbours"),
-        # # LESS Social
-        # (0.4,0.1,0.05, 0.01, "copy", "observe-neighbours"), 
-        # (0.4,0.1,0.05, 0.1, "copy", "observe-neighbours"), 
-        # (0.4,0.1,0.05, 1, "copy", "observe-neighbours"),
-        # (0.4,0.1,0.05, 10, "copy", "observe-neighbours"),
-        # # LESS HEBBIAN
-        # (0.2,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
-        # (0.2,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
-        # (0.2,0.2,0.05, 1, "copy", "observe-neighbours"),
-        # (0.2,0.2,0.05, 10, "copy", "observe-neighbours"),
-        # # MORE HEBBIAN
-        # (0.8,0.2,0.05, 0.01, "copy", "observe-neighbours"), 
-        # (0.8,0.2,0.05, 0.1, "copy", "observe-neighbours"), 
-        # (0.8,0.2,0.05, 1, "copy", "observe-neighbours"),
-        # (0.8,0.2,0.05, 10, "copy", "observe-neighbours"),
-        # # MORE SOCIAL
-        # (0.4,0.4,0.05, 0.01, "copy", "observe-neighbours"), 
-        # (0.4,0.4,0.05, 0.1, "copy", "observe-neighbours"), 
-        # (0.4,0.4,0.05, 1, "copy", "observe-neighbours"),
-        # (0.4,0.4,0.05, 10, "copy", "observe-neighbours"), 
-        # # No decay
-        # (0.4,0.2,0.0, 0.01, "copy", "observe-neighbours"), 
-        # (0.4,0.2,0.0, 0.1, "copy", "observe-neighbours"), 
-        # (0.4,0.2,0.0, 1, "copy", "observe-neighbours"),
-        # (0.4,0.2,0.0, 10, "copy", "observe-neighbours"), 
-        # # No decay; Much social; Very little Hebbian; no decay
-        # (0.1,0.4,0.0, 0.01, "copy", "observe-neighbours"), 
-        # (0.1,0.4,0.0, 0.1, "copy", "observe-neighbours"), 
-        # (0.1,0.4,0.0, 1, "copy", "observe-neighbours"),
-        # (0.1,0.4,0.0, 10, "copy", "observe-neighbours"), 
-        # # No decay; no social; Little Hebbian; no decay
-        # (0.05,0.,0.0, 0.01, "copy", "observe-neighbours"), 
-        # (0.05,0.,0.0, 0.1, "copy", "observe-neighbours"), 
-        # (0.05,0.,0.0, 1, "copy", "observe-neighbours"),
-        # (0.05,0.,0.0, 10, "copy", "observe-neighbours"), 
-        # # MORE SOCIAL + HEBBIAN
-        # (0.8,0.4,0.05, 0.01, "copy", "observe-neighbours"), 
-        # (0.8,0.4,0.05, 0.1, "copy", "observe-neighbours"), 
-        # (0.8,0.4,0.05, 1, "copy", "observe-neighbours"),
-        # (0.8,0.4,0.05, 10, "copy", "observe-neighbours"), 
-        # # NO NETWORK
-        # (0.4,0.2,0.05, 0.01, "copy", "observe-all"), 
-        # (0.4,0.2,0.05, 0.1, "copy", "observe-all"), 
-        # (0.4,0.2,0.05, 1, "copy", "observe-all"),
-        # (0.4,0.2,0.05, 10, "copy", "observe-all"),
-        # # NO NETWORK + co-occurence
-        # (0.4,0.2,0.05, 0.01, "co-occurence", "observe-all"), 
-        # (0.4,0.2,0.05, 0.1, "co-occurence", "observe-all"), 
-        # (0.4,0.2,0.05, 1, "co-occurence", "observe-all"),
-        # (0.4,0.2,0.05, 10, "co-occurence", "observe-all"),
+        # eps, mu, lam, Temp, socInfType, socNetType
+        (0.4, 0.2,0.05, 10, "copy", "observe-neighbours"), 
+        #(0.4,0.2,0.05, 1, "copy", "observe-neighbours"),
+        #(0.4,0.2,0.05, 10, "copy", "observe-neighbours"),
         ]
     
     resultsfolder = "results-dynNoB/"
@@ -298,11 +248,11 @@ if __name__=="__main__":
         params["socInfType"] = socInfType
         params["socNetType"] = socNetType
 
-        simOut, snapshots, original_agent_ids = dynSim_NoB(agentlist, atts, params)
+        simOut, snapshots, original_agent_ids, neighbours_dict = dynSim_NoB(agentlist, atts, params)
             
         socNetName = f"{socNetType}"+(f"(Stoch-{len(params['parties'])}-Block-{params['indegree']}-{params['outdegree']})" if "neighbours" in socNetType else "")
         
-        filename = resultsfolder+f"dynamicNoB_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"_beliefJump-{params['belief_jump']}-T{Temp}"+f"_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
+        filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"T{Temp}"+f"_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
           
         # Store final results
         simOut.to_csv(filename+".csv")
@@ -310,5 +260,25 @@ if __name__=="__main__":
         # Store results over time        
         snapshots.to_csv(filename+"_overTime.csv")
 
+#%%
+import matplotlib.pyplot as plt 
 
+import seaborn as sns
+fig = plt.figure()
+belief_observe = "belief"
+ax = fig.add_subplot(211) 
+for t in snapshots.t.unique():
+    snapshots.loc[snapshots.t==t, "belief"] = snapshots.loc[snapshots.t==t, atts].mean(axis=1)
+sns.kdeplot(snapshots.loc[snapshots.t.isin([0,T]), [belief_observe, "t"]], x=belief_observe, hue="t", clip=(-1,1), legend=False, palette="coolwarm") 
+
+ax = fig.add_subplot(212) 
+sns.histplot(snapshots.loc[snapshots.t.isin([0,T]), [belief_observe, "t"]], x=belief_observe, hue="t", bins=np.linspace(-1-1/14,1+1/14, 7), palette="viridis", alpha=0.2 ) 
+# %%
+plt.figure()
+ax = plt.axes()
+n = params["n"]
+sampled_ids = snapshots.loc[snapshots.t==0].agent_id.sample(n)
+for i in sampled_ids:
+    snapshots.loc[snapshots.agent_id==i, :].plot(x="t", y=belief_observe, ax=ax, legend=False)
+# %%
 

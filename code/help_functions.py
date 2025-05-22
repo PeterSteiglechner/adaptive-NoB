@@ -114,6 +114,8 @@ decay = lambda wij, lam: -lam * wij
 
 socialinfluence = lambda wij, Wij, mu: mu * (Wij - wij) if ~np.isnan(Wij) else 0
 
+socialinfluenceMult = lambda wij, Wij, mu: mu * (1 - abs(wij)) * Wij * wij if ~np.isnan(Wij) else 0
+
 #dwij = lambda wij, xi, xj, Wij, eps, mu, lam: hebbian(wij, xi, xj, eps) + socialinfluence(wij, Wij, mu) + decay(wij, lam)
 
 
@@ -333,7 +335,7 @@ def glauber_probabilities(att, options, beliefs, BN_ag, Temp, atts):
 
     def energy(beliefs):
         return np.sum([
-            -BN_ag[(a1, a2)] * beliefs[a1] * beliefs[a2]
+            - BN_ag[(a1, a2)] * beliefs[a1] * beliefs[a2]
             for a1, a2 in combinations(atts, 2)
             if a1 == att or a2 == att
         ])
@@ -350,7 +352,59 @@ def glauber_probabilities(att, options, beliefs, BN_ag, Temp, atts):
     beliefs[att] = original_value  # Restore original value
 
     delH = np.array(H) - H0
-    exp_term = np.exp(-delH / Temp)
+    exp_term = 1 / (1 + np.exp(delH / Temp))
+    ps = exp_term / np.sum(exp_term)
+    
+    return ps
+
+
+
+
+def glauber_probabilities_withSocial(att, options, beliefs, BN_ag, Temp, atts, social_beliefs, social_edge_weight, beta_pers=1, beta_soc=1):
+    """
+    Compute Glauber transition probabilities for a specific attribute.
+
+    Parameters:
+    - att: The attribute being updated.
+    - options: Possible values for the attribute.
+    - beliefs: Current belief states for all attributes.
+    - BN_ag: A dictionary with interaction weights between attribute pairs.
+    - Temp: Temperature parameter controlling randomness.
+    - atts: List of all attributes.
+    - social_beliefs: list of social beliefs on att
+    - social_edge_weight: The weight of the social belief.
+
+    Returns:
+    - ps: Array of transition probabilities for each option.
+    """
+
+    def social_energy(belief, social_beliefs, social_edge_weight):
+        return np.sum([
+            - social_edge_weight * belief * sb for sb in social_beliefs
+        ])
+    def energy(beliefs):
+        return np.sum([
+            -BN_ag[(a1, a2)] * beliefs[a1] * beliefs[a2]
+            for a1, a2 in combinations(atts, 2)
+            if a1 == att or a2 == att
+        ])
+
+    # Original energy
+    original_value = beliefs[att]  # Save original to restore later
+    H0 = energy(beliefs)
+    H_soc_0 = social_energy(original_value, social_beliefs, social_edge_weight)
+
+    # Energy for each option
+    H = []
+    H_soc = []
+    for opt in options:
+        beliefs[att] = opt
+        H.append(energy(beliefs))
+        H_soc.append(social_energy(opt, social_beliefs, social_edge_weight))
+    beliefs[att] = original_value  # Restore original value
+
+    delH = beta_pers * (np.array(H)  - H0) + beta_soc * (np.array(H_soc) - H_soc_0)
+    exp_term = 1 / (1+np.exp(delH / Temp))
     ps = exp_term / np.sum(exp_term)
     
     return ps

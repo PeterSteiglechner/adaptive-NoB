@@ -9,3 +9,7 @@ code/_*
 code/backup
 code/*ipynb
 presentations
+code/archive/
+.vscode/
+code/.vscode/
+code/results-*

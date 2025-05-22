@@ -243,7 +243,7 @@ def plot_results_over_time(
         final_timestep = sims["t"].max()
         final_values = sims.loc[sims["t"] == final_timestep]
 
-        sns.histplot(final_values, y=feature, kde=True, ax=ax2, color="blue", alpha=0.3)
+        sns.histplot(final_values, y=feature, kde=True, ax=ax2, color="grey", alpha=0.3)
         ax2.axis("off")
         ax2.set_xlim(left=0)
 
@@ -261,13 +261,13 @@ def rowPlot(sim, axs, key, eps, mu, c, legTitle, edgeNamesTuple, atts):
     axs["coh"+key].set_xlim(-1, len(atts)/2*(len(atts)-1))
 
     for att in atts:
-        sns.kdeplot(sim, x=att, ax=axs["ops"+key], color=c, alpha=0.5, label=eps if att=="a" and key=="eps" else (mu if att=="a" and key=="mu" else None))
+        sns.kdeplot(sim, x=att, ax=axs["ops"+key], color=c, alpha=0.5, label=eps if att=="a" and key=="eps" else (mu if att=="a" and key=="mu" else None), clip=[-1,1])
     axs["ops"+key].set_xlim(-1, 1)
-    axs["ops"+key].legend(title=legTitle)
-    axs["ops"+key].set_xlabel("opinion scores")
+    #axs["ops"+key].legend(title=legTitle, title_fontsize= smallfs, bbox_to_anchor=(0,0.05, 2,0.2), ncol=3, fontsize=smallfs, )
+    axs["ops"+key].set_xlabel("belief scores")
 
     for e in edgeNamesTuple:
-        sns.kdeplot(sim, x=e, ax=axs["edges"+key], color=c, alpha=0.3)
+        sns.kdeplot(sim, x=e, ax=axs["edges"+key], clip=[-1,1], color=c, alpha=0.3)
     axs["edges"+key].set_xlim(-1, 1)
     axs["edges"+key].set_xlabel("edge weights")
     
@@ -277,13 +277,26 @@ def rowPlot(sim, axs, key, eps, mu, c, legTitle, edgeNamesTuple, atts):
         for q, edgelist2 in sim.loc[:p, edgeNamesTuple].iterrows():
             frobs.append(frobenius_distance(edgelist1, edgelist2))
     sns.histplot(frobs, ax=axs["Frob"+key], kde=True, color=c, alpha=0.5)
-    axs["Frob"+key].set_xlabel("BN pairwise\nfrobenius distances")
+    axs["Frob"+key].set_xlabel("BN pairwise\nfrob. distances")
+
+
+    # Get the handles and labels from the original plotting axes
+    handles, labels = axs["ops"+key].get_legend_handles_labels()
+    # Create the legend in the corresponding "leg*" axes
+    axs["leg"+key].legend(
+        handles, labels,
+        title=legTitle,
+        title_fontsize=bigfs,
+        fontsize=bigfs,
+        loc='center'  # Center in the legend axes
+    )
+    axs["leg"+key].axis('off')
     return axs
 
 
 def compare(epsD, muD, lam, T, inf, net, epsarr, muarr, seed, M, n_ag, ngroups, indegree, outdegree, belief_jump, resultsfolder, edgeNamesTuple, atts ):
     
-    fig, axs = plt.subplot_mosaic([[a+"eps" for a in ["coh", "ops", "edges", "Frob"]], [a+"mu" for a in ["coh", "ops", "edges", "Frob"]]])
+    fig, axs = plt.subplot_mosaic([[a+"eps" for a in ["coh", "ops", "edges", "Frob", "leg"]], [a+"mu" for a in ["coh", "ops", "edges", "Frob", "leg"]]], figsize=(18/2.54,9/2.54), width_ratios=[1,1,1,1,0.5])
 
     fig.suptitle(fr"$\epsilon={epsD}$ (default), $\mu={muD}$ (default), $\lambda={lam}$, Temp={T}, {inf}, {net}, seed-{seed}", fontsize=bigfs)
 
@@ -303,5 +316,7 @@ def compare(epsD, muD, lam, T, inf, net, epsarr, muarr, seed, M, n_ag, ngroups, 
     for k, ax in axs.items():
         ax.set_ylabel("")
         ax.set_yticks([])
-    fig.tight_layout()
-    return 
+    for ax in [a+"eps" for a in ["coh", "ops", "edges", "Frob", ]]:
+        axs[ax].set_xlabel("")
+
+    return fig, axs
