@@ -12,6 +12,7 @@ from itertools import combinations
 import string
 from help_functions import get_socialOmega, initialise_socialnetwork, glauber_probabilities_withSocial
 from help_functions import hebbianV, socialinfluence, socialinfluenceMult, decay
+import json
 
 #################################
 #####  DYNAMIC MODEL   #####
@@ -22,9 +23,8 @@ def update_step(t, focal_att, agent_id, agentdict, atts, Wij, params, **kwargs):
     network_type = params["socNetType"]
     memory = params["memory"]
 
-    belief_options, temperature = params["belief_options"], params["Temp"]
+    belief_options, beta_pers, beta_soc = params["belief_options"], params["beta_pers"], params["beta_soc"]
     social_edge_weight = params["social_edge_weight"]
-
 
     agent = agentdict[agent_id]
     x = agent["x"]
@@ -33,7 +33,6 @@ def update_step(t, focal_att, agent_id, agentdict, atts, Wij, params, **kwargs):
 
     edgelist = list(belief_network.keys())
     np.random.shuffle(edgelist)
-
     for edge in edgelist:
         i, j = edge
         weight_ij = belief_network[edge]
@@ -60,26 +59,27 @@ def update_step(t, focal_att, agent_id, agentdict, atts, Wij, params, **kwargs):
             delta_beta += socialinfluence(weight_ij, curr_weight, mu)
 
         # Update weight with clipping
-        belief_network[edge] = np.clip(weight_ij + dt * delta_beta, -1, 1)
-
+        # belief_network[edge] = np.clip(weight_ij + dt * delta_beta, -1, 1)
+        belief_network[edge] = weight_ij + dt * delta_beta
+           
     # NODE UPDATING
-    items = list(x.items())
-    np.random.shuffle(items)
-    for att, b in items:
+    x_prior = dict(zip(atts, [x[a] for a in atts]))
+    _atts = list(x.keys())
+    np.random.shuffle(_atts)
+    for att in _atts:
         if att == focal_att:
             soc_beliefs = [agentdict[ag]["x"][att] for ag in neighbours] 
         else:
             soc_beliefs = []
         # options are M points in -1...1
-        ps = glauber_probabilities_withSocial(att, belief_options, x, belief_network, temperature, atts, soc_beliefs, social_edge_weight, beta_pers=1, beta_soc=1)
+        ps = glauber_probabilities_withSocial(att, belief_options, x, belief_network, atts, soc_beliefs, social_edge_weight, beta_pers=beta_pers, beta_soc=beta_soc)
         x[att] = np.random.choice(belief_options, p=ps)
 
     # VELOCITY UPDATING
-    for att, _ in list(v.items()):
-        agent["velo_past"].append([x[a]- dict(items)[a] for a in atts])
-        if len(agent["velo_past"]) > memory:
-            agent["velo_past"] = agent["velo_past"][1:]
-        new_v = np.array(agent["velo_past"]).mean(axis=0)
+    agent["velo_past"].append([x[a]- x_prior[a] for a in atts])
+    if len(agent["velo_past"]) > memory:
+        agent["velo_past"] = agent["velo_past"][1:]
+    new_v = np.array(agent["velo_past"]).mean(axis=0)
 
     # Save updates
     agent["BN"] = belief_network
@@ -118,7 +118,8 @@ def dynSim_NoB(agent_ids, focal_att, atts, params):
             - "T" (float): Total time.
             - "dt" (float): Time step.
             - "track_times" (list): Time steps to track results.
-            - "Temp" (float): Temperature for belief updating
+            - "beta_pers" (float): attention to personal dissonance; 1/TempP 
+            - "beta_scc" (float): attention for social dissonance; 1/TempS
             - "belief_options" (list): possible belief states
             - "social_edge_weight" (float): fixed edge weight of a social link (for node updating)
 
@@ -129,16 +130,18 @@ def dynSim_NoB(agent_ids, focal_att, atts, params):
     """
     np.random.seed(params["seed"])
 
-    # Initialize opinions randomly in [-1, 1]
+    # Initialise opinions randomly in [-1, 1]
     opinions = pd.DataFrame(
         [np.random.choice(params["belief_options"], replace=True, size=len(atts)) for agent in agent_ids],
         index=agent_ids, columns=atts
     )
-    identity = pd.Series(["A"]*50 + ["B"]*50, index=agent_ids)
 
-    # Initialize agent network
+    # Initialise agent network
+    assert (len(agent_ids)%2)==0
+    group_size = int(len(agent_ids)/2)
+    identity = pd.Series(["A"]*group_size + ["B"]*group_size, index=agent_ids)
     agent_dict = initialise_socialnetwork(agent_ids, identity, opinions, params)
-    neighbours_dict = {agname: ag["neighbours"] for agname, ag in agent_dict.items()}
+    neighbours_dict = {agname: ag.get("neighbours", []) for agname, ag in agent_dict.items()}
 
     agent_ids = list(agent_dict.keys())
     original_agent_ids = list(agent_ids)  # Ensure a true copy of the initial order
@@ -155,8 +158,7 @@ def dynSim_NoB(agent_ids, focal_att, atts, params):
     
     # Main simulation loop (starts at time[1] to skip t=0)
     for t in time_steps[1:]:
-        if t % 10 == 0:
-            print(t, end=", ")
+        if t % 10 == 0: print(t, end=", ")
 
         # Set up social influence matrix if needed
         socInfType = params["socInfType"]
@@ -165,10 +167,10 @@ def dynSim_NoB(agent_ids, focal_att, atts, params):
         else:
             Wij = None
 
+        # Update all agents (in random order)
         np.random.shuffle(agent_ids)
-
         for ag in agent_ids:
-            agent_dict = update_step(t, ag, agent_dict, atts, Wij, params)
+            agent_dict = update_step(t, focal_att, ag, agent_dict, atts, Wij, params)
 
         # Record results at tracked times
         if t in params["track_times"] or t==time_steps[-1]:
@@ -193,6 +195,8 @@ def dynSim_NoB(agent_ids, focal_att, atts, params):
         snap = snap.reset_index(names="agent_id")
         snapshots.append(snap)
     snapshots_df = pd.concat(snapshots)
+    final_snap = snapshots[-1]
+    final_snap.loc[original_agent_ids, "neighbours"] = [json.dumps(neighbours_dict[ag]) for ag in original_agent_ids]
 
     return snapshots[-1], snapshots_df, original_agent_ids, neighbours_dict
 
@@ -202,87 +206,212 @@ def dynSim_NoB(agent_ids, focal_att, atts, params):
 #####  MAIN   #####
 #################################
 if __name__=="__main__":
-    T = 100
-    params = {
-        "seed":np.random.randint(1000),
-        "n": 100,
-        "T":T,
-        "dt":1,
-        "M": 10, # number of beliefs
-        "track_times": np.arange(0,T+1, 1),
-        "socNetType":"observe-neighbours",  # observe-neighbours or observe-all
-        "socInfType":None,   # correlation or co-occurence or copy
-        "eps":None,
-        "epsV":None,
-        "mu":None, 
-        "lam":None,
-        "parties": ["A", "B"], 
-        "withinClusterP":0.4, 
-        "betweenClusterP":0.01,
-        "initial_w":0.5,
-        #"belief_jump":0.1,
-        "Temp":None,
-        "belief_options": np.linspace(-1,1,7), 
-        "social_edge_weight": 0.0,
-        "memory": 3,
-    }
-    atts = list(string.ascii_lowercase[:params["M"]])
-    edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
-    agentlist = list(range(params["n"]))        
-    
-    focal_att = "a"
-
-    # base scenario:
-    # (0.4,0.2,0.05, Temp, "copy", "observe-neighbours") where Temp = 0.01, 0.1, 1, 10
-    #     
-    paramCombis = [
-        # eps, mu, lam, Temp, socInfType, socNetType
-        (0.0, 0., 0.,0.0, 1, "copy", "observe-neighbours"), 
-        #(0.4,0.2,0.05, 1, "copy", "observe-neighbours"),
-        #(0.4,0.2,0.05, 10, "copy", "observe-neighbours"),
-        ]
-    
-    resultsfolder = "results-dynNoB_velo/"
-    
-    for eps, epsV, mu, lam, Temp, socInfType, socNetType in paramCombis:
-        params["eps"] = eps
-        params["epsV"] = epsV
-        params["mu"]  = mu
-        params["lam"] = lam
-        params["Temp"] = Temp 
-        params["socInfType"] = socInfType
-        params["socNetType"] = socNetType
-
-        simOut, snapshots, original_agent_ids, neighbours_dict = dynSim_NoB(agentlist, atts, params)
-            
-        socNetName = f"{socNetType}"+(f"(Stoch-{len(params['parties'])}-Block-{params['withinClusterP']}-{params['betweenClusterP']})" if "neighbours" in socNetType else "")
+    for seed in [0,1,9]:
+        T = 100
+        params = {
+            "seed":seed,
+            "n": 100,
+            "T":T,
+            "dt":1,
+            "M": 10, # number of beliefs
+            "track_times": np.arange(0,T+1, 1),
+            "socNetType":"observe-neighbours",  # observe-neighbours or observe-all
+            "socInfType":None,   # correlation or co-occurence or copy
+            "eps":None,
+            "epsV":None,
+            "mu":None, 
+            "lam":None,
+            "parties": ["A", "B"], 
+            "withinClusterP":0.4, 
+            "betweenClusterP":0.01,
+            "initial_w": 0.4,
+            #"belief_jump":0.1,
+            "beta_pers":None,
+            "beta_soc":None,
+            "belief_options": np.linspace(-1,1,7), 
+            "social_edge_weight": 1,
+            "memory": 3,
+        }
+        atts = list(string.ascii_lowercase[:params["M"]])
+        edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
+        agentlist = list(range(params["n"]))        
         
-        filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"T{Temp}"+f"_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
-          
-        # Store final results
-        simOut.to_csv(filename+".csv")
+        focal_att = "a"
 
-        # Store results over time        
-        snapshots.to_csv(filename+"_overTime.csv")
+        # base scenario:
+        # OLD (0.4,0.2,0.05, Temp, "copy", "observe-neighbours") where Temp = 0.01, 0.1, 1, 10
+        #     
+        epsV = 0.5
+        mu = 0.3
+        paramCombis = [
+            # eps, epsV, mu, lam, beta_pers, beta_soc, socInfType, socNetType
+            (0.0, epsV, mu,0.0, 0.5, 0.5, "copy", "observe-neighbours"), 
+            (0.0,epsV, mu,0.0, 2, 0.5, "copy", "observe-neighbours"), 
+            (0.0, epsV, mu,0.0, 0.5, 2, "copy", "observe-neighbours"), 
+            (0.0, epsV, mu,0.0, 2, 2, "copy", "observe-neighbours"), 
+            ]
+        
+        resultsfolder = "results-dynNoB_replica/"
+        
+        for eps, epsV, mu, lam, beta_pers, beta_soc, socInfType, socNetType in paramCombis:
+            params["eps"] = eps
+            params["epsV"] = epsV
+            params["mu"]  = mu
+            params["lam"] = lam
+            params["beta_pers"] = beta_pers
+            params["beta_soc"] = beta_soc 
+            params["socInfType"] = socInfType
+            params["socNetType"] = socNetType
+            print(eps, epsV, mu, lam, beta_pers, beta_soc, socInfType, socNetType)
+
+            simOut, snapshots, original_agent_ids, neighbours_dict = dynSim_NoB(agentlist, focal_att, atts, params)
+                
+            socNetName = f"{socNetType}"+(f"(Stoch-{len(params['parties'])}-Block-{params['withinClusterP']}-{params['betweenClusterP']})" if "neighbours" in socNetType else "")
+            
+            filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
+            
+            # Store final results
+            simOut.to_csv(filename+".csv")
+
+            # Store results over time        
+            snapshots.to_csv(filename+"_overTime.csv")
 
 #%%
-import matplotlib.pyplot as plt 
 
+
+import matplotlib.pyplot as plt 
 import seaborn as sns
+
+import networkx as nx 
+
+#%%
+
+params["initial_w"] = 0.4
+beta_pers = 2
+beta_soc = 2
+eps = 0.0
+mu =0.3
+epsV= 0.5
+
+
 fig = plt.figure()
+res_arr = []
 belief_observe = "avgbelief"
-for t in snapshots.t.unique():
-    snapshots.loc[snapshots.t==t, "avgbelief"] = snapshots.loc[snapshots.t==t, atts].mean(axis=1)
-#sns.kdeplot(snapshots.loc[snapshots.t.isin([0,T]), [belief_observe, "t"]], x=belief_observe, hue="t", clip=(-1,1), legend=False, palette="coolwarm") 
+seeds_samples = np.random.choice([0,1,9], 3, replace=False)
+for s in seeds_samples:
+    filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+    snapshots = pd.read_csv(filename+"_overTime.csv")
+    for t in [T]:
+        snapshots.loc[snapshots.t==t, "avgbelief"] = snapshots.loc[snapshots.t==t, atts].mean(axis=1)
+    
+    #sns.kdeplot(snapshots.loc[snapshots.t.isin([0,T]), [belief_observe, "t"]], x=belief_observe, hue="t", clip=(-1,1), legend=False, palette="coolwarm") 
+    res_arr.append(snapshots.loc[snapshots.t==T, belief_observe].values)
+
 
 ax = fig.add_subplot(111) 
-sns.histplot(snapshots.loc[snapshots.t.isin([0,T]), [belief_observe, "t"]], x=belief_observe, hue="t", bins=np.linspace(-1-1/14,1+1/14, 21), palette="viridis", alpha=0.2 ) 
+#sns.histplot(snapshots.loc[snapshots.t.isin([0,T]), [belief_observe, "t"]], x=belief_observe, hue="t", bins=np.linspace(-1-1/14,1+1/14, 21), palette="viridis", alpha=0.2 ) 
+sns.histplot(res_arr, bins=np.linspace(-1-1/14,1+1/14, 21), palette="Set1", alpha=0.2, legend=False) 
+
+# seed_samples = np.random.choice(range(50), size=10, replace=False)
+# for s in seed_samples:
+#     filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{Tembeta_socpS}"+f"_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+#     snapshots = pd.read_csv(filename+"_overTime.csv")
+#     plt.figure()
+#     ax = plt.axes()
+#     n = params["n"]
+#     sampled_ids = snapshots.loc[snapshots.t==0].agent_id.sample(n)
+#     for i in sampled_ids:
+#         snapshots.loc[snapshots.agent_id==i, :].plot(x="t", y=focal_att, ax=ax, legend=False)
+
+seed_samples = [0,1,9]#np.random.choice(range(10), size=10, replace=False)
+for s in seed_samples:
+    filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+    snapshots = pd.read_csv(filename+"_overTime.csv")
+    finalsnap = pd.read_csv(filename+".csv")
+    neighbours_dict = {ag: json.loads(finalsnap.loc[ag, "neighbours"]) for ag in agentlist}
+    G = nx.from_dict_of_lists(neighbours_dict)
+    fig = plt.figure()
+    ax = plt.axes()
+    colors = [(snapshots.loc[(snapshots.t==T) & (snapshots.agent_id==i), focal_att]) for i in neighbours_dict.keys()]
+    pos = nx.spring_layout(G, seed=1)
+    nx.draw_networkx_edges(G, pos=pos, width=0.5, alpha=0.5)
+    nx.draw_networkx_nodes(G, pos=pos, node_color=colors, cmap="coolwarm", vmax=1, vmin=-1, node_size=100)
+    ax.set_title(f"beta_p = {beta_pers}, beta_s={beta_soc}")
+
+#%%
+
+np.mean(dict(list(nx.degree(G))).values())
+
 # %%
-plt.figure()
-ax = plt.axes()
-n = params["n"]
-sampled_ids = snapshots.loc[snapshots.t==0].agent_id.sample(n)
-for i in sampled_ids:
-    snapshots.loc[snapshots.agent_id==i, :].plot(x="t", y=belief_observe, ax=ax, legend=False)
+
+epsV = 0.5
+mu = 0.3
+beta_pers = 2
+beta_soc = 2
+s = 9
+
+filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+
+snapshots = pd.read_csv(filename+"_overTime.csv")
+
+
+fig, axs = plt.subplots(1,2, sharey=True, sharex=True)
+sns.histplot(snapshots.loc[(snapshots.t==T) & (snapshots.identity=="A")][edgeNames], legend=False, ax = axs[0], bins=np.linspace(-1.5,1.5, 11))
+sns.histplot(snapshots.loc[(snapshots.t==T) & (snapshots.identity=="B")][edgeNames], legend=False, ax=axs[1] , bins=np.linspace(-1.5,1.5, 11))
+axs[0].set_title("group A")
+axs[1].set_title("group B")
+
+fig.suptitle("edge weight distribution\n"+fr"with $\beta_p = {beta_pers}$ and $\beta_s={beta_soc}$"+"\n"+fr"and with $\epsilon_V = {epsV}$ and $\mu={mu}$ (colour=edge)")
+fig.tight_layout()
+
 # %%
+diff = snapshots.loc[(snapshots.t==T) & (snapshots.identity=="A")][edgeNames].mean(axis=0) - snapshots.loc[(snapshots.t==T) & (snapshots.identity=="B")][edgeNames].mean(axis=0)
+
+fig, ax = plt.subplots(1,1)
+sns.histplot(diff, ax=ax)
+ax.set_xlabel("Group differences in edge weights")
+
+
+
+
+#%%
+
+
+
+from help_functions import social_energy, energy
+social_energy(colors[0], [colors[nb].values[0] for nb in neighbours_dict[0]], 1)
+i = 0
+belief_network = {
+            (att1, att2): 1 for att1, att2 in combinations(atts, 2)
+        }
+energy(snapshots.loc[(snapshots.t==T) & (snapshots.agent_id==i), atts], "a", atts, belief_network )
+# %%
+# let's look at an individual agent network
+import matplotlib as mpl
+i = np.random.choice(agentlist)
+i= 0
+print(i)
+
+ag = snapshots.loc[(snapshots.t==T) & (snapshots.agent_id == i)]
+G = nx.Graph()
+for a in atts:
+    G.add_node(a, value=ag[a])
+for na, a in enumerate(atts):
+    for b in atts[:na]:
+        G.add_edge(a,b, value=ag[f"({b},{a})"].values[0])
+pos = nx.circular_layout(G)
+edgelist = list(G.edges())
+edgewidths = [3*abs(G.edges[e]["value"]) for e in G.edges()]
+edgecol = [plt.get_cmap("coolwarm")( mpl.colors.Normalize(vmin=-1.5, vmax=1.5)(G.edges[e]["value"])) for e in G.edges()]
+nx.draw_networkx_edges(G, pos, width=edgewidths, edge_color=edgecol, edgelist=edgelist, edge_cmap="viridis", edge_vmax=1.5, edge_vmin=-1.5)
+nodelist = list(G.nodes())
+nodecol = [G.nodes[n]["value"] for n in G.nodes()]
+nx.draw_networkx_nodes(G, pos, nodelist=nodelist, node_color=nodecol, cmap="coolwarm", vmax=1, vmin=-1)
+plt.gca().text(pos[focal_att][0]+0.1, pos[focal_att][1], "focal")
+plt.axis("off")
+
+# %%
+
+G1 = G.copy()
+
 

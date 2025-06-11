@@ -8,7 +8,8 @@ import copy
 import string
 from scipy.sparse import csr_matrix
 
-hebbianV = lambda wij, vi, vj, eps:  eps * (1 - abs(wij)) * vi * vj
+hebbianV = lambda wij, vi, vj, eps:  eps * vi * vj
+# (1 - abs(wij))
 
 hebbian = lambda wij, xi, xj, eps: eps * (1 - np.sign(xi * xj) * wij) * xi *xj
 
@@ -232,15 +233,16 @@ def social_energy(belief, social_beliefs, social_edge_weight):
     return np.sum([
         - social_edge_weight * belief * sb for sb in social_beliefs
     ])
+
 def energy(beliefs, att, atts, BN_ag ):
     return np.sum([
-        -BN_ag[(a1, a2)] * beliefs[a1] * beliefs[a2]
+        - BN_ag[(a1, a2)] * beliefs[a1] * beliefs[a2]
         for a1, a2 in combinations(atts, 2)
         if a1 == att or a2 == att
     ])
 
 
-def glauber_probabilities_withSocial(att, options, beliefs, BN_ag, Temp, atts, social_beliefs, social_edge_weight, beta_pers=1, beta_soc=1):
+def glauber_probabilities_withSocial(att, options, beliefs, BN_ag, atts, social_beliefs, social_edge_weight, beta_pers=1, beta_soc=1):
     """
     Compute Glauber transition probabilities for a specific attribute.
 
@@ -249,7 +251,8 @@ def glauber_probabilities_withSocial(att, options, beliefs, BN_ag, Temp, atts, s
     - options: Possible values for the attribute.
     - beliefs: Current belief states for all attributes.
     - BN_ag: A dictionary with interaction weights between attribute pairs.
-    - Temp: Temperature parameter controlling randomness.
+    - beta_pers: attention parameter controlling randomness; 1/T to personal dissonance
+    - beta_soc: attention parameter controlling randomness; 1/attention to social dissonance
     - atts: List of all attributes.
     - social_beliefs: list of social beliefs on att
     - social_edge_weight: The weight of the social belief.
@@ -259,7 +262,7 @@ def glauber_probabilities_withSocial(att, options, beliefs, BN_ag, Temp, atts, s
     """
 
     # Original energy
-    original_value = beliefs[att]  # Save original to restore later
+    original_value = beliefs[att]  
     H0 = energy(beliefs, att, atts, BN_ag )
     H_soc_0 = social_energy(original_value, social_beliefs, social_edge_weight)
 
@@ -272,8 +275,6 @@ def glauber_probabilities_withSocial(att, options, beliefs, BN_ag, Temp, atts, s
         H_soc.append(social_energy(opt, social_beliefs, social_edge_weight))
     beliefs[att] = original_value  # Restore original value
 
-    beta_pers = 1/Temp
-    beta_soc = 1/Temp
     delH = beta_pers * (np.array(H)  - H0) + beta_soc * (np.array(H_soc) - H_soc_0)
     exp_term = 1 / (1+np.exp(delH))
     ps = exp_term / np.sum(exp_term)
