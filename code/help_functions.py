@@ -187,45 +187,44 @@ def coherenceOther(bnEdges, opinion):
 #####  Probabilities for opinion jump   #####
 #################################
 
-def glauber_probabilities(att, options, beliefs, BN_ag, Temp, atts):
-    """
-    Compute Glauber transition probabilities for a specific attribute.
+# def glauber_probabilities(att, options, beliefs, BN_ag, Temp, atts):
+#     """
+#     Compute Glauber transition probabilities for a specific attribute.
 
-    Parameters:
-    - att: The attribute being updated.
-    - options: Possible values for the attribute.
-    - beliefs: Current belief states for all attributes.
-    - BN_ag: A dictionary with interaction weights between attribute pairs.
-    - Temp: Temperature parameter controlling randomness.
-    - atts: List of all attributes.
+#     Parameters:
+#     - att: The attribute being updated.
+#     - options: Possible values for the attribute.
+#     - beliefs: Current belief states for all attributes.
+#     - BN_ag: A dictionary with interaction weights between attribute pairs.
+#     - Temp: Temperature parameter controlling randomness.
+#     - atts: List of all attributes.
 
-    Returns:
-    - ps: Array of transition probabilities for each option.
-    """
+#     Returns:
+#     - ps: Array of transition probabilities for each option.
+#     """
 
-    def energy(beliefs):
-        return np.sum([
-            - BN_ag[(a1, a2)] * beliefs[a1] * beliefs[a2]
-            for a1, a2 in combinations(atts, 2)
-            if a1 == att or a2 == att
-        ])
+#     def energy(beliefs):
+#         return np.sum([
+#             - BN_ag[(a1, a2)] * beliefs[a1] * beliefs[a2]
+#             for a1, a2 in combinations(atts, 2)
+#             if a1 == att or a2 == att
+#         ])
 
-    # Original energy
-    H0 = energy(beliefs)
+#     # Original energy
+#     H0 = energy(beliefs)
 
-    # Energy for each option
-    H = []
-    original_value = beliefs[att]  # Save original to restore later
-    for opt in options:
-        beliefs[att] = opt
-        H.append(energy(beliefs))
-    beliefs[att] = original_value  # Restore original value
+#     # Energy for each option
+#     H = []
+#     original_value = beliefs[att]  # Save original to restore later
+#     for opt in options:
+#         beliefs[att] = opt
+#         H.append(energy(beliefs))
+#     beliefs[att] = original_value  # Restore original value
 
-    delH = np.array(H) - H0
-    exp_term = 1 / (1 + np.exp(delH / Temp))
-    ps = exp_term / np.sum(exp_term)
-    
-    return ps
+#     delH = np.array(H) - H0
+#     exp_term = 1 / (1 + np.exp(delH / Temp))
+#     ps = exp_term / np.sum(exp_term)
+#     return ps
 
 
 

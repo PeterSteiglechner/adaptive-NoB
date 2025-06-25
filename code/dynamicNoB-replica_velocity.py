@@ -144,7 +144,7 @@ def dynSim_NoB(agent_ids, focal_att, atts, params):
     neighbours_dict = {agname: ag.get("neighbours", []) for agname, ag in agent_dict.items()}
 
     agent_ids = list(agent_dict.keys())
-    original_agent_ids = list(agent_ids)  # Ensure a true copy of the initial order
+    original_agent_ids = list(agent_ids)  
 
     print("simulate", end="...")
     time_steps = np.arange(0, params["T"]+1, step=params["dt"])
@@ -230,7 +230,7 @@ if __name__=="__main__":
             "beta_soc":None,
             "belief_options": np.linspace(-1,1,7), 
             "social_edge_weight": 1,
-            "memory": 3,
+            "memory": 2,
         }
         atts = list(string.ascii_lowercase[:params["M"]])
         edgeNames = [f"({i},{j})" for i,j in list(combinations(atts, 2))]
@@ -241,8 +241,8 @@ if __name__=="__main__":
         # base scenario:
         # OLD (0.4,0.2,0.05, Temp, "copy", "observe-neighbours") where Temp = 0.01, 0.1, 1, 10
         #     
-        epsV = 0.5
-        mu = 0.3
+        epsV = 1.
+        mu = 0.5
         paramCombis = [
             # eps, epsV, mu, lam, beta_pers, beta_soc, socInfType, socNetType
             (0.0, epsV, mu,0.0, 0.5, 0.5, "copy", "observe-neighbours"), 
@@ -268,7 +268,7 @@ if __name__=="__main__":
                 
             socNetName = f"{socNetType}"+(f"(Stoch-{len(params['parties'])}-Block-{params['withinClusterP']}-{params['betweenClusterP']})" if "neighbours" in socNetType else "")
             
-            filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
+            filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
             
             # Store final results
             simOut.to_csv(filename+".csv")
@@ -278,6 +278,10 @@ if __name__=="__main__":
 
 #%%
 
+
+#################################
+#####  VIS   #####
+#################################
 
 import matplotlib.pyplot as plt 
 import seaborn as sns
@@ -290,16 +294,17 @@ params["initial_w"] = 0.4
 beta_pers = 2
 beta_soc = 2
 eps = 0.0
-mu =0.3
-epsV= 0.5
+mu =0.
+epsV= 0.
 
 
 fig = plt.figure()
 res_arr = []
 belief_observe = "avgbelief"
-seeds_samples = np.random.choice([0,1,9], 3, replace=False)
+#seeds_samples = np.random.choice([0,1,9], 3, replace=False)
+seeds_samples = [0,1,9]
 for s in seeds_samples:
-    filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+    filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
     snapshots = pd.read_csv(filename+"_overTime.csv")
     for t in [T]:
         snapshots.loc[snapshots.t==t, "avgbelief"] = snapshots.loc[snapshots.t==t, atts].mean(axis=1)
@@ -310,58 +315,66 @@ for s in seeds_samples:
 
 ax = fig.add_subplot(111) 
 #sns.histplot(snapshots.loc[snapshots.t.isin([0,T]), [belief_observe, "t"]], x=belief_observe, hue="t", bins=np.linspace(-1-1/14,1+1/14, 21), palette="viridis", alpha=0.2 ) 
-sns.histplot(res_arr, bins=np.linspace(-1-1/14,1+1/14, 21), palette="Set1", alpha=0.2, legend=False) 
-
-# seed_samples = np.random.choice(range(50), size=10, replace=False)
-# for s in seed_samples:
-#     filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{Tembeta_socpS}"+f"_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
-#     snapshots = pd.read_csv(filename+"_overTime.csv")
-#     plt.figure()
-#     ax = plt.axes()
-#     n = params["n"]
-#     sampled_ids = snapshots.loc[snapshots.t==0].agent_id.sample(n)
-#     for i in sampled_ids:
-#         snapshots.loc[snapshots.agent_id==i, :].plot(x="t", y=focal_att, ax=ax, legend=False)
-
-seed_samples = [0,1,9]#np.random.choice(range(10), size=10, replace=False)
-for s in seed_samples:
-    filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
-    snapshots = pd.read_csv(filename+"_overTime.csv")
-    finalsnap = pd.read_csv(filename+".csv")
-    neighbours_dict = {ag: json.loads(finalsnap.loc[ag, "neighbours"]) for ag in agentlist}
-    G = nx.from_dict_of_lists(neighbours_dict)
-    fig = plt.figure()
-    ax = plt.axes()
-    colors = [(snapshots.loc[(snapshots.t==T) & (snapshots.agent_id==i), focal_att]) for i in neighbours_dict.keys()]
-    pos = nx.spring_layout(G, seed=1)
-    nx.draw_networkx_edges(G, pos=pos, width=0.5, alpha=0.5)
-    nx.draw_networkx_nodes(G, pos=pos, node_color=colors, cmap="coolwarm", vmax=1, vmin=-1, node_size=100)
-    ax.set_title(f"beta_p = {beta_pers}, beta_s={beta_soc}")
-
+sns.histplot(res_arr, bins=np.linspace(-1-1/14,1+1/14, 21), palette="Set1", alpha=0.2, legend=True, ax=ax) 
+leg = ax.get_legend()
+leg.set_title("seed")
 #%%
 
-np.mean(dict(list(nx.degree(G))).values())
 
-# %%
-
-epsV = 0.5
-mu = 0.3
+params["initial_w"] = 0.4
 beta_pers = 2
 beta_soc = 2
-s = 9
+eps = 0.0
+mu =0.5
+epsV= 1
 
-filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+snapshots = pd.read_csv(filename+"_overTime.csv")
+finalsnap = pd.read_csv(filename+".csv")
+neighbours_dict = {ag: json.loads(finalsnap.loc[ag, "neighbours"]) for ag in agentlist}
+G = nx.from_dict_of_lists(neighbours_dict)
+
+plt.rcParams.update({"font.size":15})
+
+for t in range(100):
+    seed_samples = [0]#np.random.choice(range(10), size=10, replace=False)
+    for s in seed_samples:
+        fig = plt.figure()
+        ax = plt.axes()
+        colors = [(snapshots.loc[(snapshots.t==t) & (snapshots.agent_id==i), focal_att]) for i in neighbours_dict.keys()]
+        pos = nx.spring_layout(G, seed=1) if t>0 else pos
+        nx.draw_networkx_edges(G, pos=pos, width=0.5, alpha=0.5)
+        nx.draw_networkx_nodes(G, pos=pos, node_color=colors, cmap="coolwarm", vmax=1, vmin=-1, node_size=100)
+        ax.set_title(fr"$\beta_p = {beta_pers}, \beta_s={beta_soc}, \epsilon={epsV}, \mu={mu}$")
+        sm = plt.cm.ScalarMappable(cmap="coolwarm", norm=plt.Normalize(vmin = -1, vmax=1))
+        sm._A = []
+        plt.colorbar(sm, label="focal attitude", ticks=[-1,0,1], ax=ax)
+        ax.annotate("agents", pos[38], (pos[38][0]+0.3, pos[38][1]-0.3), fontsize=15, color="grey",  arrowprops=dict( arrowstyle="-", connectionstyle="arc3,rad=0.2",color="grey", shrinkA=5, shrinkB=5))
+        ax.annotate("", pos[56], (pos[38][0]+0.4, pos[38][1]-0.3), fontsize=15, color="grey", arrowprops=dict( arrowstyle="-", connectionstyle="arc3,rad=-0.2",color="grey", shrinkA=5, shrinkB=5))
+        ax.annotate("", pos[58], (pos[38][0]+0.5, pos[38][1]-0.3), fontsize=15, color="grey", arrowprops=dict( arrowstyle="-", connectionstyle="arc3,rad=-0.2",color="grey", shrinkA=5, shrinkB=5))
+        ax.text(0.05,0.05,f"$t={t}$", transform=ax.transAxes, va="bottom", ha="left", fontsize=15, color="grey")
+        plt.savefig(f"figs_gif_CA-workshop/socNet_epsV-{epsV}-m{params['memory']}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_beta-{beta_pers}-{beta_soc}_seed{s}_t{t:03d}.png")
+#%%
+
+epsV = 1
+mu = 0.5
+beta_pers = 2
+beta_soc = 2
+s = 0
+
+filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
 
 snapshots = pd.read_csv(filename+"_overTime.csv")
 
-
+selected_edgeNames = ["(a,b)", "(d,e)"]
 fig, axs = plt.subplots(1,2, sharey=True, sharex=True)
-sns.histplot(snapshots.loc[(snapshots.t==T) & (snapshots.identity=="A")][edgeNames], legend=False, ax = axs[0], bins=np.linspace(-1.5,1.5, 11))
-sns.histplot(snapshots.loc[(snapshots.t==T) & (snapshots.identity=="B")][edgeNames], legend=False, ax=axs[1] , bins=np.linspace(-1.5,1.5, 11))
+sns.histplot(snapshots.loc[(snapshots.t==T) & (snapshots.identity=="A")][selected_edgeNames], legend=False, ax = axs[0], bins=np.linspace(-1.5,1.5, 12))
+sns.histplot(snapshots.loc[(snapshots.t==T) & (snapshots.identity=="B")][selected_edgeNames], legend=True, ax=axs[1] , bins=np.linspace(-1.5,1.5, 12))
 axs[0].set_title("group A")
 axs[1].set_title("group B")
 
-fig.suptitle("edge weight distribution\n"+fr"with $\beta_p = {beta_pers}$ and $\beta_s={beta_soc}$"+"\n"+fr"and with $\epsilon_V = {epsV}$ and $\mu={mu}$ (colour=edge)")
+
+fig.suptitle("edge weights \n"+fr"$\beta_p = {beta_pers}$, $\beta_s={beta_soc}$"+"\n"+fr"and $\epsilon = {epsV}$, $\mu={mu}$ (colour=edge)")
 fig.tight_layout()
 
 # %%
@@ -370,9 +383,33 @@ diff = snapshots.loc[(snapshots.t==T) & (snapshots.identity=="A")][edgeNames].me
 fig, ax = plt.subplots(1,1)
 sns.histplot(diff, ax=ax)
 ax.set_xlabel("Group differences in edge weights")
+ax.set_ylabel("")
+ax.set_yticks([])
 
 
+#%% 
+e_A =snapshots.loc[(snapshots.t==T) & (snapshots.identity=="A")][edgeNames]
+e_B = snapshots.loc[(snapshots.t==T) & (snapshots.identity=="B")][edgeNames] 
+inds = (e_A.mean()-e_B.mean()).sort_values().index
 
+e_B_long = e_B.loc[:, inds].melt(var_name='Belief Network Edges', value_name='Edge Weight')
+e_B_long['Group'] = 'B'
+e_A_long = e_A.loc[:, inds].melt(var_name='Belief Network Edges', value_name='Edge Weight')
+e_A_long['Group'] = 'A'
+df = pd.concat([e_A_long, e_B_long])
+
+ax = plt.axes() 
+sns.boxplot(data=df, ax=ax, x='Belief Network Edges', y='Edge Weight', hue='Group', whis=[0, 100], palette={'A': 'purple', 'B': 'green'})
+ax.legend(title='Group')
+ax.set_xticklabels([])
+plt.tight_layout()
+
+
+#%%
+
+diff = snapshots.loc[(snapshots.t==T) & (snapshots.identity=="A")][edgeNames].mean(axis=0) - snapshots.loc[(snapshots.t==T) & (snapshots.identity=="B")][edgeNames].mean(axis=0)
+
+diff[]
 
 #%%
 
@@ -388,8 +425,20 @@ energy(snapshots.loc[(snapshots.t==T) & (snapshots.agent_id==i), atts], "a", att
 # %%
 # let's look at an individual agent network
 import matplotlib as mpl
+
+epsV =0.
+mu = 0.
+beta_pers = 2
+beta_soc = 2
+s = 0
+
+filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+
+snapshots = pd.read_csv(filename+"_overTime.csv")
+
+
 i = np.random.choice(agentlist)
-i= 0
+i= 48
 print(i)
 
 ag = snapshots.loc[(snapshots.t==T) & (snapshots.agent_id == i)]
@@ -407,11 +456,160 @@ nx.draw_networkx_edges(G, pos, width=edgewidths, edge_color=edgecol, edgelist=ed
 nodelist = list(G.nodes())
 nodecol = [G.nodes[n]["value"] for n in G.nodes()]
 nx.draw_networkx_nodes(G, pos, nodelist=nodelist, node_color=nodecol, cmap="coolwarm", vmax=1, vmin=-1)
-plt.gca().text(pos[focal_att][0]+0.1, pos[focal_att][1], "focal")
+plt.gca().text(pos[focal_att][0]+0.1, pos[focal_att][1], "focal", rotation=90, fontsize=20)
+plt.gca().text(0.99,0.99, f"group {ag.identity.values[0]}", va="top", ha="right", transform=plt.gca().transAxes, fontsize=20)
+
+
 plt.axis("off")
 
 # %%
+ag = snapshots.loc[(snapshots.t==T), edgeNames+["agent_id"]]
 
-G1 = G.copy()
+# %%
+from scipy.spatial.distance import pdist, squareform
+import pandas as pd
+
+df = snapshots.loc[(snapshots.t==T),  edgeNames+["agent_id"]]
+# Compute pairwise Frobenius (Euclidean) distances
+distances = pdist(df[edgeNames].values, metric='euclidean')  # condensed distance matrix
+dist_matrix = pd.DataFrame(squareform(distances), 
+                           index=df.agent_id, 
+                           columns=df.agent_id)
+dist_matrix["ag1"] = dist_matrix.columns
+dists = dist_matrix.melt(var_name="ag2", value_name="Frobenius_distance", id_vars="ag1")
+dists.loc[dists["Frobenius_distance"].argmax()]
 
 
+
+# %%
+
+from analysis_help import plot_network
+from netgraph import Graph
+
+
+epsV =1
+mu = 0.5
+beta_pers = 2
+beta_soc = 2
+s = 0
+
+filename = resultsfolder+f"dynamicNoB-P+S_M-{params['M']}_n-{params['n']}_{socInfType}-"+socNetName+f"beta-p{beta_pers}-s{beta_soc}"+f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{s}"
+
+snapshots = pd.read_csv(filename+"_overTime.csv")
+
+i = 82
+ag = snapshots.loc[(snapshots.t==T) & (snapshots.agent_id == i)]
+G = nx.Graph()
+for a in atts:
+    G.add_node(a, value=ag[a])
+for na, a in enumerate(atts):
+    for b in atts[:na]:
+        G.add_edge(a,b, value=ag[f"({b},{a})"].values[0])
+bn_adj = pd.Series({(b, a): ag[f"({b},{a})"].iloc[0] for na, a in enumerate(atts) for b in atts[:na]})
+scaleE = 3
+widths = (bn_adj*scaleE).to_dict()
+#widths = {k: (v if abs(v) else 0) for k, v in widths.items()}
+edge_labels = False
+node_labels = dict(zip(G.nodes(), list(G.nodes())))
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+cmap = cm.get_cmap('coolwarm')
+norm = mcolors.Normalize(vmin=-1, vmax=1)  # Adjust based on your data
+
+# 2. Convert scalar edge values to RGBA tuples
+edge_colors = {tuple(sorted((a, b))): cmap(norm(v)) for (a, b), v in bn_adj.items()}
+ax = plt.axes()
+
+
+pos = nx.spring_layout(G, weight='value', seed=41)  # seed for reproducibility
+Graph(
+    G,
+    node_layout = pos,#_kwargs=dict(edge_lengths = (0.001 / (abs(bn_adj) + 1e-6)).to_dict()),
+    node_size=5,
+    node_shape="o",
+    node_color="gainsboro",
+    node_edge_color="w",
+    edge_width=widths,
+    edge_color=edge_colors,     # <-- pass a dict of float values
+    edge_cmap=plt.get_cmap("coolwarm"),            # <-- colormap to map floats to RGBA
+    edge_vmin=-1.5,                    # <-- adjust these based on your data
+    edge_vmax=1.5,
+    edge_layout="curved",
+    edge_labels=False,
+    node_labels=node_labels,
+    node_label_offset=0.,
+    node_label_fontdict={"fontsize": 12},
+    ax=ax, 
+)
+    
+
+# %%
+
+
+atts = ["climate", "gender", "migration", "inequality", "environment", "health", "taxes"]
+G = nx.Graph()
+ag = {a: None for a in atts}  # Placeholder values
+for a in atts:
+    G.add_node(a, value=ag[a])
+
+# Add edges with weights representing typical associations (positive or negative)
+edges = [
+    ("climate", "environment", 0.8),
+    ("climate", "health", 0.2),
+    ("climate", "taxes", -0.6),
+    ("climate", "inequality", 0.3),
+
+    ("environment", "health", 0.6),
+    ("environment", "taxes", -0.2),
+    ("environment", "inequality", 0.4),
+
+    ("health", "inequality", 0.7),
+    ("health", "taxes", -0.3),
+
+    ("taxes", "inequality", 0.5),
+    ("taxes", "migration", -0.5),
+    ("taxes", "gender", -0.),
+
+    ("inequality", "gender", 0.6),
+    ("inequality", "migration", 0.5),
+
+    ("migration", "gender", 0.),
+    ("migration", "health", -0.),
+
+    ("gender", "health", 0.),
+]
+
+# Add to graph
+for u, v, w in edges:
+    G.add_edge(u, v, weight=w)
+
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+cmap = cm.get_cmap('coolwarm')
+norm = mcolors.Normalize(vmin=-1, vmax=1)  # Adjust based on your data
+
+# 2. Convert scalar edge values to RGBA tuples
+edge_colors =({(u,v): cmap(norm(w["weight"])) for u,v, w in (list(G.edges(data=True)))})
+
+fig, ax = plt.subplots(1,1,figsize=(20/2.54, 6/2.54))
+Graph(
+    G,
+    node_layout_kwargs=dict(edge_lengths = {(u,v): 0.1 / (abs(w["weight"])+ 1e-6) for u,v, w in list(G.edges(data=True))}), 
+    node_size=7,
+    node_shape="o",
+    node_color="gainsboro",
+    node_edge_color="w",
+    edge_width=({(u,v): 10 * w["weight"] for u,v, w in (list(G.edges(data=True)))}),
+    edge_color=edge_colors,     # <-- pass a dict of float values
+    edge_cmap=plt.get_cmap("coolwarm"),            # <-- colormap to map floats to RGBA
+    edge_vmin=-1.,                    # <-- adjust these based on your data
+    edge_vmax=1.,
+    edge_layout="curved",
+    edge_labels=False,
+    node_labels=dict(zip(G.nodes(), atts)),
+    node_label_offset=0.,
+    node_label_fontdict={"fontsize": 8},
+)
+
+    
+# %%

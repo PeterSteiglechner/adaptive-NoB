@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import pingouin
+#import pingouin
 import seaborn as sns
 import matplotlib.pyplot as plt
 from itertools import combinations
