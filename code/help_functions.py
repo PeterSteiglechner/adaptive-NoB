@@ -22,48 +22,48 @@ socialinfluenceMult = lambda wij, Wij, mu: mu * (1 - abs(wij)) * Wij * wij if ~n
 #dwij = lambda wij, xi, xj, Wij, eps, mu, lam: hebbian(wij, xi, xj, eps) + socialinfluence(wij, Wij, mu) + decay(wij, lam)
 
 
-def get_socialOmega(agentdict, agentlist, ops, atts, params):
-    """
-    calculate the social signal (Wij) from the correlation or co-occurence of opinions
+# def get_socialOmega(agentdict, agentlist, ops, atts, params):
+#     """
+#     calculate the social signal (Wij) from the correlation or co-occurence of opinions
 
-    Args:
-        agentdict (dict): contains the attributes (incl opinions, neighbours, ...) of all agents
-        agentlist (list): contains indices in the dataframe that define the agents 
-        ops (pd.DataFrame): contains opinion values for dimensions (atts) and indices (agentlist)
-        atts (list): contains the opinion dimensions
-        params (dict): contains parameter settings 
+#     Args:
+#         agentdict (dict): contains the attributes (incl opinions, neighbours, ...) of all agents
+#         agentlist (list): contains indices in the dataframe that define the agents 
+#         ops (pd.DataFrame): contains opinion values for dimensions (atts) and indices (agentlist)
+#         atts (list): contains the opinion dimensions
+#         params (dict): contains parameter settings 
 
-    Returns:
-        function: function of agent-ID ag that returns the co-occurence or correlation matrix as seen by agent ag. 
-    """
+#     Returns:
+#         function: function of agent-ID ag that returns the co-occurence or correlation matrix as seen by agent ag. 
+#     """
     
-    signOp = lambda op: 0 if op==0 else op/abs(op)
+#     signOp = lambda op: 0 if op==0 else op/abs(op)
     
-    if params["socInfType"]=="correlation":
-        if params["socNetType"]=="observe-all":
-            corrNet = pd.DataFrame( ops.corr()  - np.diag(np.ones(len(atts))),  index=atts, columns=atts)
-            return lambda ag: corrNet
+#     if params["socInfType"]=="correlation":
+#         if params["socNetType"]=="observe-all":
+#             corrNet = pd.DataFrame( ops.corr()  - np.diag(np.ones(len(atts))),  index=atts, columns=atts)
+#             return lambda ag: corrNet
 
-    elif params["socInfType"]=="co-occurence":
-        if params["socNetType"] == "observe-neighbours": 
-            observed_signs = {ag: {att: np.array([signOp(ops.loc[nb, att]) for nb in agentdict[ag]["neighbours"] if nb!= ag]).astype(int) for att in atts} for ag in agentlist}
-            W_cooc_ag = {}
-            for ag in agentlist:
-                if len(agentdict[ag]["neighbours"])==0:
-                    W_cooc = [(i,j,np.nan) for i,j in combinations(atts, 2)]
-                else:
-                    W_cooc= [
-                        (i, j, np.mean(observed_signs[ag][i] * observed_signs[ag][j]))
-                          for i, j in combinations(atts, 2)
-                        ]                      
-                W_cooc_ag[ag] = pd.DataFrame(W_cooc, columns=["i", "j", "cooccurence"]).pivot_table(index="i", columns="j", values="cooccurence")
-            return lambda ag: W_cooc_ag[ag]
+#     elif params["socInfType"]=="co-occurence":
+#         if params["socNetType"] == "observe-neighbours": 
+#             observed_signs = {ag: {att: np.array([signOp(ops.loc[nb, att]) for nb in agentdict[ag]["neighbours"] if nb!= ag]).astype(int) for att in atts} for ag in agentlist}
+#             W_cooc_ag = {}
+#             for ag in agentlist:
+#                 if len(agentdict[ag]["neighbours"])==0:
+#                     W_cooc = [(i,j,np.nan) for i,j in combinations(atts, 2)]
+#                 else:
+#                     W_cooc= [
+#                         (i, j, np.mean(observed_signs[ag][i] * observed_signs[ag][j]))
+#                           for i, j in combinations(atts, 2)
+#                         ]                      
+#                 W_cooc_ag[ag] = pd.DataFrame(W_cooc, columns=["i", "j", "cooccurence"]).pivot_table(index="i", columns="j", values="cooccurence")
+#             return lambda ag: W_cooc_ag[ag]
         
-        elif params["socNetType"] == "observe-all":
-            observed_signs = {att: np.array([signOp(ops.loc[ag, att]) for ag in agentlist]) for att in atts}
-            W_cooc = [(i, j, np.mean(observed_signs[i]*observed_signs[j])) for i, j in combinations(atts, 2)]
-            W_cooc = pd.DataFrame(W_cooc, columns=["i", "j", "cooccurence"]).pivot_table(index="i", columns="j", values="cooccurence")
-            return lambda ag: W_cooc
+#         elif params["socNetType"] == "observe-all":
+#             observed_signs = {att: np.array([signOp(ops.loc[ag, att]) for ag in agentlist]) for att in atts}
+#             W_cooc = [(i, j, np.mean(observed_signs[i]*observed_signs[j])) for i, j in combinations(atts, 2)]
+#             W_cooc = pd.DataFrame(W_cooc, columns=["i", "j", "cooccurence"]).pivot_table(index="i", columns="j", values="cooccurence")
+#             return lambda ag: W_cooc
     
 
 
@@ -90,8 +90,8 @@ def initialise_socialnetwork(agent_list, identity, opinions, params):
     #print("Initialising social network...")
     np.random.seed(params["seed"])
     atts = opinions.columns
-    soc_inf_type = params["socInfType"]
-    soc_net_type = params["socNetType"]
+    # soc_inf_type = params["socInfType"]
+    # soc_net_type = params["socNetType"]
     parties = params["parties"]
     withinClusterP = params["withinClusterP"]
     betweenClusterP = params["betweenClusterP"]
@@ -131,6 +131,7 @@ def initialise_socialnetwork(agent_list, identity, opinions, params):
         }
         opinion_vector = opinions.loc[agent].to_dict()
         agent_dict[agent] = {
+            "id": agent, 
             "x": opinion_vector,
             "v": dict(zip(atts, np.zeros_like(atts))),
             "velo_past":[],
