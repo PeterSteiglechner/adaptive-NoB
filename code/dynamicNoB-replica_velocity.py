@@ -5,6 +5,7 @@
 # %%
 import numpy as np
 import pandas as pd
+import os
 
 # import pingouin # for partial correlation: pcorr
 from itertools import combinations
@@ -28,16 +29,11 @@ def update_step(t, agent_id, agentdict, Wij, params, **kwargs):
         params["dt"],
     )
     socialInfl_type = "copy"  # alternative co-occurence
-    network_type = "observe-neighbours"  # alternative observe-all
+    # network_type = "observe-neighbours"  # alternative observe-all
     memory = params["memory"]
     focal_att = params["focal_att"]
     atts = params["atts"]
-
-    belief_options, beta_pers, beta_soc = (
-        params["belief_options"],
-        params["beta_pers"],
-        params["beta_soc"],
-    )
+    belief_options = params["belief_options"]
     social_edge_weight = params["social_edge_weight"]
 
     agent = agentdict[agent_id]
@@ -53,25 +49,23 @@ def update_step(t, agent_id, agentdict, Wij, params, **kwargs):
 
         # Social Influence
         if socialInfl_type == "copy":
-            if network_type == "observe-all":
-                neighbours = list(agentdict.keys())
-            else:
-                neighbours = agent.get("neighbours", [])
-
+            # if network_type == "observe-all":
+            #     neighbours = list(agentdict.keys())
+            # else:
+            neighbours = agent.get("neighbours", [])
             if neighbours:
                 sampled_neighbour = np.random.choice(neighbours)
                 curr_weight = agentdict[sampled_neighbour]["BN"].get(edge, 0)
             else:
                 curr_weight = np.nan
         else:
-            curr_weight = 0 if Wij(agent_id).empty else Wij(agent_id).loc[i, j]
-
-        delta_beta = 0
-        if ~np.isnan(curr_weight):
-            delta_beta += socialinfluence(weight_ij, curr_weight, mu)
+            social_signal = Wij(agent_id)
+            curr_weight = social_signal.loc[i, j] if not social_signal.empty else 0
 
         # Decay + Hebbian
-        delta_beta += decay(weight_ij, lam) + hebbianV(weight_ij, v[i], v[j], epsV)
+        delta_beta = hebbianV(weight_ij, v[i], v[j], epsV) + decay(weight_ij, lam)
+        if ~np.isnan(curr_weight):
+            delta_beta += socialinfluence(weight_ij, curr_weight, mu)
 
         # Update weight without clipping
         # belief_network[edge] = np.clip(weight_ij + dt * delta_beta, -1, 1)
@@ -82,11 +76,10 @@ def update_step(t, agent_id, agentdict, Wij, params, **kwargs):
     atts_order = list(params["atts"])
     np.random.shuffle(atts_order)
     for att in atts_order:
-        soc_beliefs = (
-            []
-            if not att == focal_att
-            else [agentdict[ag]["x"][att] for ag in neighbours]
-        )
+        if att == focal_att:
+            soc_beliefs = [agentdict[ag]["x"][att] for ag in neighbours]
+        else:
+            soc_beliefs = []
         # options are M points in -1...1
         ps = glauber_probabilities_withSocial(
             att,
@@ -96,8 +89,8 @@ def update_step(t, agent_id, agentdict, Wij, params, **kwargs):
             atts,
             soc_beliefs,
             social_edge_weight,
-            beta_pers=beta_pers,
-            beta_soc=beta_soc,
+            beta_pers=1,
+            beta_soc=1,
         )
         x[att] = np.random.choice(belief_options, p=ps)
 
@@ -157,8 +150,8 @@ def dynSim_NoB(params):
             - "T" (float): Total time.
             - "dt" (float): Time step.
             - "track_times" (list): Time steps to track results.
-            - "beta_pers" (float): attention to personal dissonance; 1/TempP
-            - "beta_scc" (float): attention for social dissonance; 1/TempS
+            # - "beta_pers" (float): attention to personal dissonance; 1/TempP
+            # - "beta_scc" (float): attention for social dissonance; 1/TempS
             - "belief_options" (list): possible belief states
             - "social_edge_weight" (float): fixed edge weight of a social link (for node updating)
 
@@ -177,7 +170,7 @@ def dynSim_NoB(params):
     opinions = pd.DataFrame(
         [
             np.random.choice(params["belief_options"], replace=True, size=len(atts))
-            for agent in agent_ids
+            for ag in agent_ids
         ],
         index=agent_ids,
         columns=atts,
@@ -186,9 +179,8 @@ def dynSim_NoB(params):
     # Initialise agent network
     assert (len(agent_ids) % 2) == 0
     group_size = int(len(agent_ids) / 2)
-    identity = pd.Series(["A"] * group_size + ["B"] * group_size, index=agent_ids)
+    identity = dict(zip(agent_ids, ["A"] * group_size + ["B"] * group_size))
     agent_dict = initialise_socialnetwork(agent_ids, identity, opinions, params)
-    # neighbours_dict = {agname: ag.get("neighbours", []) for agname, ag in agent_dict.items()}
     edge_labels = [f"({i},{j})" for i, j in edge_list]
     # original_agent_ids = list(agent_ids)
 
@@ -243,18 +235,18 @@ def dynSim_NoB(params):
 #####  MAIN   #####
 #################################
 if __name__ == "__main__":
-    for seed in [97, 98, 99]:
+    for seed in range(0, 20):
         T = 100
         params = {
             # General Setup
             "n": 100,
             "belief_options": np.linspace(-1, 1, 7),
-            "social_edge_weight": 1,
-            "memory": 4,
+            "social_edge_weight": 1.0,
+            "memory": 3,
             "M": 10,  # number of beliefs
             "focal_att": "a",
             # Init
-            "initial_w": 0.1,
+            "initial_w": None,
             # Edge Dynamics
             "eps": None,
             "epsV": None,
@@ -265,8 +257,8 @@ if __name__ == "__main__":
             "withinClusterP": 0.4,
             "betweenClusterP": 0.01,
             # Belief Dynamics
-            "beta_pers": None,
-            "beta_soc": None,
+            # "beta_pers": None,
+            # "beta_soc": None,
             # Simulation setup:
             "seed": seed,
             "T": T,
@@ -282,28 +274,28 @@ if __name__ == "__main__":
         # base scenario:
         # OLD (0.4,0.2,0.05, Temp, "copy", "observe-neighbours") where Temp = 0.01, 0.1, 1, 10
         #
-        epsV = 0.3
-        mu = 0.5
+        epsV_val = 0.3
+        mu_val = 0.5
         paramCombis = [
-            # eps, epsV, mu, lam, beta_pers, beta_soc
-            (0.0, epsV, mu, 0.0, 2.0, 2.0),
-            (0.0, epsV, mu, 0.0, 0.5, 2.0),
-            (0.0, epsV, mu, 0.0, 2.0, 0.5),
-            (0.0, epsV, mu, 0.0, 0.5, 0.5),
+            # eps, epsV, mu, lam, initial_w
+            (0.0, epsV_val, mu_val, 0.0, 0.8),
+            (0.0, epsV_val, mu_val, 0.0, 0.2),
+            (0.0, 0.0, 0.0, 0.0, 0.8),
+            (0.0, 0.0, 0.0, 0.0, 0.2),
         ]
 
-        resultsfolder = "results-dynNoB_velo/"
-
-        for eps, epsV, mu, lam, beta_pers, beta_soc in paramCombis:
+        resultsfolder = "2025-07_results-dynNoB_velo/"
+        if not os.path.isdir(resultsfolder):
+            os.mkdir(resultsfolder)
+        for eps, epsV, mu, lam, initial_w in paramCombis:
             params["eps"] = eps
             params["epsV"] = epsV
             params["mu"] = mu
             params["lam"] = lam
-            params["beta_pers"] = beta_pers
-            params["beta_soc"] = beta_soc
+            params["initial_w"] = initial_w
             # params["socInfType"] = "copy"
             # params["socNetType"] = "observe-neighbours"
-            print(eps, epsV, mu, lam, beta_pers, beta_soc, seed)
+            print(eps, epsV, mu, lam, initial_w, seed)
 
             simOut = dynSim_NoB(params)
 
@@ -314,8 +306,8 @@ if __name__ == "__main__":
                 resultsfolder
                 + f"dynamicNoB-_M-{params['M']}_n-{params['n']}-"
                 + socNetName
-                + f"_beta-p{beta_pers}-s{beta_soc}"
-                + f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_initialW-{params['initial_w']}_seed{params['seed']}"
+                # + f"_beta-p{beta_pers}-s{beta_soc}"
+                + f"_epsV{epsV}-m{params['memory']}_eps{eps}_mu{mu}_lam{lam}_rho{params['social_edge_weight']}_initialW-{params['initial_w']}_seed{params['seed']}"
             )
 
             # Store final results
