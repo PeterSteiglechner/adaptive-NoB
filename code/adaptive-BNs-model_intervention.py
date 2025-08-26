@@ -418,14 +418,15 @@ if __name__ == "__main__":
         "belief_options": np.linspace(-1, 1, 7),
         "social_edge_weight": 2.0,
         "memory": 3,
-        "M": 4,
+        "M": 10,
         "focal_att": "a",
         "clusters": ["A", "B"],
         "withinCluster_link_prob": 0.4,
         "betweenCluster_link_prob": 0.01,
         "T": T,
         "dt": 1,
-        "track_times": np.arange(0, T + 1, 1),
+        "track_times": list(np.arange(0, T - 10 + 1, 10))
+        + list(np.arange(T - 10 + 1, T + 1)),
         "intervention_period": [],
         "intervention_att": None,
         "intervention_strength": None,
@@ -438,7 +439,7 @@ if __name__ == "__main__":
     base_params["edgeNames"] = [f"({i},{j})" for i, j in base_params["edge_list"]]
 
     # Parameter combinations
-    epsV_val = 0.3
+    epsV_val = 0.5
     mu_val = 0.5
     param_combis = [
         (epsV_val, mu_val, 0.0, 0.8),
@@ -447,7 +448,7 @@ if __name__ == "__main__":
         (0.0, 0.0, 0.0, 0.2),
     ]
     interventions = [
-        ([], None, None, None),
+        # ([], None, None, None),
         (range(100, 150), "a", 2, 1),
         (range(100, 150), "a", 10, 1),
         (range(100, 150), "b", 2, 1),
@@ -455,7 +456,7 @@ if __name__ == "__main__":
     ]
 
     # Results folder
-    results_folder = "2025-08_results_interv_M4/"
+    results_folder = "2025-08_results_HenrikMeeting/"
     if not os.path.isdir(results_folder):
         os.mkdir(results_folder)
 
@@ -464,9 +465,11 @@ if __name__ == "__main__":
     #    for epsV, mu, lam, initial_w in param_combis:
 
     # Run in parallel
-    seeds = np.arange(0, 20)
+    seeds = np.arange(0, 100)
 
     for period, i_att, i_stren, i_val in interventions:
+        if seeds in range(0, 20):
+            base_params["track_times"] = np.arange(0, T + 1, 1)
         base_params.update(
             {
                 "intervention_period": period,

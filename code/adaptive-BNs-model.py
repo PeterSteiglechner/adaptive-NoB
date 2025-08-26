@@ -314,7 +314,7 @@ if __name__ == "__main__":
     base_params = {
         "n": 100,
         "belief_options": np.linspace(-1, 1, 7),
-        "social_edge_weight": 4.0,
+        "social_edge_weight": 2.0,
         "memory": 3,
         "M": 10,
         "focal_att": "a",
@@ -335,14 +335,14 @@ if __name__ == "__main__":
     epsV_val = 0.3
     mu_val = 0.5
     param_combis = [
-        (epsV_val, mu_val, 0.0, 0.8),
-        (epsV_val, mu_val, 0.0, 0.2),
+        # (epsV_val, mu_val, 0.0, 0.8),
+        # (epsV_val, mu_val, 0.0, 0.2),
         (0.0, 0.0, 0.0, 0.8),
         (0.0, 0.0, 0.0, 0.2),
     ]
 
     # Results folder
-    results_folder = "2025-08_results/"
+    results_folder = "2025-08_results_HenrikMeeting/"
     if not os.path.isdir(results_folder):
         os.mkdir(results_folder)
 
