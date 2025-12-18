@@ -4,11 +4,14 @@
 <svg
    version="1.1"
    id="svg1"
-   width="776.82343"
-   height="480.89996"
-   viewBox="0 0 776.82343 480.89996"
-   sodipodi:docname="full_sketch_+beliefUpdate.svg"
+   width="787.84113"
+   height="472.89905"
+   viewBox="0 0 787.84113 472.89904"
+   sodipodi:docname="2025-12-15_sketch.svg"
    inkscape:version="1.4.2 (2aeb623e1d, 2025-05-12)"
+   inkscape:export-filename="../a99ab796/2025-12-15_sketch.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -16,10 +19,10 @@
   <defs
      id="defs1">
     <rect
-       x="44.747895"
+       x="44.747894"
        y="-117.23948"
-       width="215.68485"
-       height="39.378148"
+       width="215.68484"
+       height="39.378147"
        id="rect3" />
     <rect
        x="44.747894"
@@ -27,6 +30,12 @@
        width="215.68484"
        height="39.378147"
        id="rect3-7" />
+    <rect
+       x="44.747894"
+       y="-117.23948"
+       width="215.68484"
+       height="39.378147"
+       id="rect3-9" />
   </defs>
   <sodipodi:namedview
      id="namedview1"
@@ -37,30 +46,40 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="1.117371"
-     inkscape:cx="387.51677"
-     inkscape:cy="240.2962"
+     inkscape:zoom="4.469484"
+     inkscape:cx="312.78779"
+     inkscape:cy="293.65806"
      inkscape:window-width="1870"
      inkscape:window-height="1014"
      inkscape:window-x="50"
      inkscape:window-y="29"
      inkscape:window-maximized="1"
      inkscape:current-layer="g1"
-     showgrid="false">
+     showgrid="false"
+     showguides="false">
     <inkscape:page
        x="0"
        y="0"
        inkscape:label="1"
        id="page1"
-       width="776.82343"
-       height="480.89996"
+       width="787.84113"
+       height="472.89905"
        margin="0"
        bleed="0" />
   </sodipodi:namedview>
   <g
      id="g1"
      inkscape:groupmode="layer"
-     inkscape:label="1">
+     inkscape:label="1"
+     transform="translate(14,-8.9997351e-4)">
+    <rect
+       style="font-variation-settings:normal;opacity:1;vector-effect:none;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:1.06363;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;-inkscape-stroke:none"
+       id="rect32"
+       width="100.2353"
+       height="34.903358"
+       x="196.89073"
+       y="18.794115"
+       ry="0.73403943" />
     <path
        id="path1"
        d="m 132.078,214.797 100.465,25.758"
@@ -74,7 +93,7 @@
     <path
        id="path3"
        d="m -362.035,143.148 c 0,78.278 -63.457,141.735 -141.735,141.735 -78.277,0 -141.73,-63.457 -141.73,-141.735 0,-78.277 63.453,-141.73 141.73,-141.73 78.278,0 141.735,63.453 141.735,141.73 z"
-       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#0000ff;stroke-width:2.83465;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4.2;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#0000ff;stroke-width:2.83465;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4.2;stroke-dasharray:none;stroke-opacity:1"
        transform="scale(-1.3333333,1.3333333)" />
     <path
        id="path4"
@@ -105,7 +124,8 @@
        id="path9"
        d="m 94.746,49.402 h 59.684 v 59.684 H 94.746 Z"
        style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2.83465;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4.2;stroke-dasharray:none;stroke-opacity:1"
-       transform="scale(1.3333333)" />
+       transform="scale(1.3333333)"
+       sodipodi:nodetypes="ccccc" />
     <path
        id="path10"
        d="m 216.809,226.328 h 29.246 v 29.242 h -29.246 z"
@@ -153,7 +173,7 @@
          id="tspan17"
          style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="0"
-         y="0">b</tspan></text>
+         y="0">x</tspan></text>
     <text
        id="text18"
        xml:space="preserve"
@@ -161,11 +181,11 @@
          id="tspan18"
          style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="0"
-         y="0">i</tspan><tspan
+         y="0">foc</tspan><tspan
          id="tspan19"
          style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="4.5147657"
-         y="-14.999987">A</tspan></text>
+         y="-14.999987" /></text>
     <text
        id="text19"
        xml:space="preserve"
@@ -173,99 +193,97 @@
          id="tspan20"
          style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="0"
-         y="0">b</tspan></text>
+         y="0">x</tspan></text>
     <text
        id="text20"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,166.70818,121.30273)"><tspan
-         id="tspan21"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">j</tspan><tspan
-         id="tspan22"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="4.5147657"
-         y="-14.999987">A</tspan></text>
+       transform="matrix(1.3333333,0,0,1.3333333,166.70818,121.30273)">m</text>
     <text
        id="text22"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,701.88992,114.63605)"><tspan
+       transform="matrix(1.3333333,0,0,1.3333333,701.88992,114.63605)"
+       style="fill:#0000ff"><tspan
          id="tspan23"
-         style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="0"
-         y="0">b</tspan></text>
+         y="0">x</tspan></text>
     <text
        id="text23"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,724.72518,121.30271)"><tspan
+       transform="matrix(1.3333333,0,0,1.3333333,724.72518,121.30271)"
+       style="fill:#0000ff"><tspan
          id="tspan24"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="0"
-         y="0">j</tspan><tspan
+         y="0">m</tspan><tspan
          id="tspan25"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="4.5147657"
-         y="-14.999987">B</tspan></text>
+         y="-14.999987" /></text>
     <text
        id="text25"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,545.43881,191.67302)"><tspan
+       style="font-size:16px;fill:#0000ff;stroke-width:1.33333"
+       x="541.43878"
+       y="189.67302"><tspan
          id="tspan26"
-         style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">b</tspan></text>
+         style="font-variant:normal;font-weight:normal;font-size:33.3333px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="541.43878"
+         y="189.67302">x</tspan></text>
     <text
        id="text26"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,568.27408,198.33968)"><tspan
+       style="font-size:16px;fill:#0000ff;stroke-width:1.33333"
+       x="564.27411"
+       y="196.33968"><tspan
          id="tspan27"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">i</tspan><tspan
+         style="font-variant:normal;font-weight:normal;font-size:21.6667px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="564.27411"
+         y="196.33968">foc</tspan><tspan
          id="tspan28"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="4.5147657"
-         y="-14.999987">B</tspan></text>
+         style="font-variant:normal;font-weight:normal;font-size:21.6667px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="570.29376"
+         y="176.33969" /></text>
     <text
        id="text28"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,607.04554,126.81906)"><tspan
+       x="573.04553"
+       y="120.81906"
+       style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan29"
-         style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">ω</tspan></text>
+         style="font-variant:normal;font-weight:normal;font-size:33.3333px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="573.04553"
+         y="120.81906">ω</tspan></text>
     <text
        id="text29"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,634.95892,133.48572)"><tspan
+       x="600.95892"
+       y="127.48572"
+       style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan30"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">ij</tspan><tspan
-         id="tspan31"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="9.0295315"
-         y="-14.999987">B</tspan></text>
+         style="font-variant:normal;font-weight:normal;font-size:21.6667px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="600.95892"
+         y="127.48572">foc–m</tspan></text>
     <text
-       id="text31"
+       id="text28-3"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,258.63316,125.59188)"><tspan
-         id="tspan32"
-         style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">ω</tspan></text>
+       x="248.76074"
+       y="120.39314"
+       style="font-size:16px;fill:#ff0000;stroke-width:1.33333"><tspan
+         id="tspan29-5"
+         style="font-variant:normal;font-weight:normal;font-size:33.3333px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="248.76074"
+         y="120.39314">ω</tspan></text>
     <text
-       id="text32"
+       id="text29-6"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,286.54654,132.25854)"><tspan
-         id="tspan33"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">ij</tspan><tspan
-         id="tspan34"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="9.0295315"
-         y="-14.999987">A</tspan></text>
+       x="276.67413"
+       y="127.0598"
+       style="font-size:16px;fill:#ff0000;stroke-width:1.33333"><tspan
+         id="tspan30-2"
+         style="font-variant:normal;font-weight:normal;font-size:21.6667px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="276.67413"
+         y="127.0598">foc–m</tspan></text>
     <text
        id="text34"
        xml:space="preserve"
@@ -287,43 +305,39 @@
     <text
        id="text36"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,110.0262,195.03986)"><tspan
+       x="102.0262"
+       y="195.03986"
+       style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan37"
-         style="font-variant:normal;font-weight:normal;font-size:20px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">ω</tspan></text>
+         style="font-variant:normal;font-weight:normal;font-size:26.6667px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="102.0262"
+         y="195.03986">ω</tspan></text>
     <text
        id="text37"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,132.35691,200.37319)"><tspan
+       x="124.3569"
+       y="200.37318"
+       style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan38"
-         style="font-variant:normal;font-weight:normal;font-size:13px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">kj</tspan><tspan
-         id="tspan39"
-         style="font-variant:normal;font-weight:normal;font-size:13px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="11.140131"
-         y="-11.999989">A</tspan></text>
+         style="font-variant:normal;font-weight:normal;font-size:17.3333px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="124.3569"
+         y="200.37318">m–n</tspan></text>
     <text
        id="text39"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,140.60917,284.95744)"><tspan
+       x="146.60918"
+       y="282.95743"
+       style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan40"
-         style="font-variant:normal;font-weight:normal;font-size:25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">b</tspan></text>
+         style="font-variant:normal;font-weight:normal;font-size:33.3333px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         x="146.60918"
+         y="282.95743">x</tspan></text>
     <text
        id="text40"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,163.44443,291.6241)"><tspan
-         id="tspan41"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">k</tspan><tspan
-         id="tspan42"
-         style="font-variant:normal;font-weight:normal;font-size:16.25px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="9.4103985"
-         y="-14.999987">A</tspan></text>
+       x="169.44443"
+       y="289.62411"
+       style="font-size:16px;stroke-width:1.33333">n</text>
     <text
        id="text42"
        xml:space="preserve"
@@ -382,6 +396,21 @@
        d="m 252.625,25.373 -9.135,5.28 0.001,-10.559 z"
        style="fill:#ff6400;fill-opacity:1;fill-rule:evenodd;stroke:#ff6400;stroke-width:1.40769;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        transform="matrix(1.3333333,0.52221733,-0.52221733,1.3333333,0,0)" />
+    <path
+       id="path59"
+       d="m 144.336,93.715 c 10.844,25.48 22.809,56.305 52.914,11.687"
+       style="fill:none;stroke:#009600;stroke-width:4.25197;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4.2;stroke-dasharray:none;stroke-opacity:1"
+       transform="scale(1.3333333)" />
+    <path
+       id="path60"
+       d="m 25.525,184.42 -9.756,5.636 10e-4,-11.277 z"
+       style="fill:#009600;fill-opacity:1;fill-rule:evenodd;stroke:#009600;stroke-width:1.50391;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       transform="matrix(0.89954133,-1.3333333,1.3333333,0.89954133,0,0)" />
+    <path
+       id="path61"
+       d="m 246.23,134.688 c -27.531,12.05 -73.632,13.062 -48.98,-29.286"
+       style="fill:none;stroke:#009600;stroke-width:4.25197;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4.2;stroke-dasharray:none;stroke-opacity:1"
+       transform="scale(1.3333333)" />
     <text
        id="text61"
        xml:space="preserve"
@@ -397,38 +426,38 @@
     <text
        id="text62"
        xml:space="preserve"
-       x="291.64163"
+       x="299.64163"
        y="327.4169"
        style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan63"
          style="font-variant:normal;font-weight:normal;font-size:20px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
-         x="291.64163"
-         y="327.4169">b<tspan
+         x="299.64163"
+         y="327.4169">x<tspan
    style="font-size:13px;baseline-shift:sub;stroke-width:1.33333"
-   id="tspan6">m</tspan><tspan
+   id="tspan6">k</tspan><tspan
    style="font-size:13px;baseline-shift:super;stroke-width:1.33333"
-   id="tspan7">A</tspan></tspan></text>
+   id="tspan7" /></tspan></text>
     <text
        id="text63"
        xml:space="preserve"
        transform="matrix(1.3333333,0,0,1.3333333,307.3428,331.4169)" />
     <path
        id="path65"
-       d="M 30.302666,85.593811 H 121.08933 V 118.73962 H 30.302666 Z"
+       d="M 32.302666,85.593811 H 123.08933 V 118.73962 H 32.302666 Z"
        style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.73835" />
     <text
        id="text65"
        xml:space="preserve"
-       x="35.6633"
+       x="39.6633"
        y="110.73962"
        style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan66"
          style="font-variant:normal;font-weight:normal;font-size:26.6667px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
-         x="35.6633"
+         x="39.6633"
          y="110.73962">belief</tspan></text>
     <path
        id="path66"
-       d="m 0,160.74 h 111.78666 v 55 H 0 Z"
+       d="M -14,160.74 H 97.78666 v 55 H -14 Z"
        style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.48005" />
     <text
        id="text66"
@@ -436,7 +465,7 @@
        x="18.3594"
        y="183.99759"
        style="font-size:16px;white-space:pre;inline-size:0;stroke-width:1.33333"
-       transform="translate(4.0000017,1.9998532)"><tspan
+       transform="translate(-5.999998,1.9998532)"><tspan
          id="tspan67"
          style="font-variant:normal;font-weight:normal;font-size:26.6667px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
          x="18.3594"
@@ -447,25 +476,26 @@
          dx="0 -0.58666742"
          y="207.99762">relation</tspan></text>
     <text
-       id="text68"
-       xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,236.10641,273.64091)"><tspan
-         id="tspan69"
-         style="font-variant:normal;font-weight:normal;font-size:20px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="0"
-         y="0">ω</tspan></text>
-    <text
        id="text69"
        xml:space="preserve"
-       transform="matrix(1.3333333,0,0,1.3333333,258.43711,278.97424)"><tspan
-         id="tspan70"
-         style="font-variant:normal;font-weight:normal;font-size:13px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       transform="matrix(1.3333333,0,0,1.3333333,258.43711,278.97424)" />
+    <text
+       id="text71"
+       xml:space="preserve"
+       transform="matrix(1.3333333,0,0,1.3333333,386.75781,413.8556)"><tspan
+         id="tspan72"
+         style="font-variant:normal;font-weight:700;font-size:20px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#009600;fill-opacity:1;fill-rule:nonzero;stroke:none"
          x="0"
-         y="0">ki</tspan><tspan
-         id="tspan71"
-         style="font-variant:normal;font-weight:normal;font-size:13px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         x="11.140131"
-         y="-11.999989">A</tspan></text>
+         y="0">Network (edge) updating:</tspan><tspan
+         id="tspan73"
+         style="font-variant:normal;font-weight:normal;font-size:20px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#009600;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         dx="0 0 0 0 0 0 0 0 0 0 0 0 0 -0.36000046"
+         y="22.000027">  ★     internal adaptation</tspan><tspan
+         id="tspan74"
+         style="font-variant:normal;font-weight:normal;font-size:20px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#009600;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="0"
+         y="44.000053">   </tspan></text>
     <text
        id="text74"
        xml:space="preserve"
@@ -519,6 +549,14 @@
          x="60.937576"
          y="472.52234"> social dissonance</tspan></text>
     <text
+       id="text81"
+       xml:space="preserve"
+       transform="matrix(1.3333333,0,0,1.3333333,438.65125,43.882839)"><tspan
+         id="tspan83"
+         style="font-variant:normal;font-weight:normal;font-size:20px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#009600;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         x="-158.94974"
+         y="115.12115">★</tspan></text>
+    <text
        id="text83"
        xml:space="preserve"
        transform="matrix(1.3333333,0,0,1.3333333,400.92293,222.11899)"><tspan
@@ -533,28 +571,62 @@
     <text
        xml:space="preserve"
        id="text3"
-       style="font-size:20px;line-height:1.1;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3);display:inline;fill:#ff6600;stroke-width:7.55906;stroke-miterlimit:4.2"
+       style="font-size:20px;line-height:1.1;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3);display:inline;fill:#ffffff;stroke-width:7.55906;stroke-miterlimit:4.2"
        x="0"
        y="0"
-       transform="translate(97.096285,140.92776)"><tspan
-         x="93.142578"
+       transform="matrix(1.2,0,0,1.2,64.759825,165.96866)"><tspan
+         x="113.68457"
          y="-101.04492"
-         id="tspan9"><tspan
-           style="fill:#1a1a1a"
-           id="tspan1">individual </tspan><tspan
-           style="font-weight:bold"
-           id="tspan2">A</tspan></tspan></text>
+         id="tspan2">agent A</tspan></text>
+    <rect
+       style="font-variation-settings:normal;vector-effect:none;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:1.06363;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;-inkscape-stroke:none"
+       id="rect32-8"
+       width="100.2353"
+       height="34.903358"
+       x="625"
+       y="18"
+       ry="0.73403943" />
     <text
        xml:space="preserve"
-       id="text3-5"
-       style="font-size:20px;line-height:1.1;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-7);display:inline;fill:#0000ff;stroke-width:7.55906;stroke-miterlimit:4.2"
+       id="text3-4"
+       style="font-size:20px;line-height:1.1;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-9);display:inline;fill:#ffffff;stroke-width:7.55906;stroke-miterlimit:4.2"
        x="0"
        y="0"
-       transform="translate(518.20561,140.92776)"><tspan
-         x="93.259766"
+       transform="matrix(1.2,0,0,1.2,492.8691,165.17454)"><tspan
+         x="113.68457"
          y="-101.04492"
-         id="tspan11">individual <tspan
-   style="font-weight:bold"
-   id="tspan10">B</tspan></tspan></text>
+         id="tspan3">agent A</tspan></text>
+    <circle
+       id="path18"
+       style="fill:#000000;stroke:#000000"
+       cx="282.8067"
+       cy="117.23948"
+       r="0.25906515" />
+    <circle
+       id="path19"
+       style="fill:#000000;stroke:#000000"
+       cx="281.91174"
+       cy="118.13444"
+       r="0.25906515" />
+    <text
+       id="text28-3-1"
+       xml:space="preserve"
+       x="239.18906"
+       y="270.77414"
+       style="font-size:12.8px;fill:#ff0000;stroke-width:1.06666"><tspan
+         id="tspan29-5-8"
+         style="font-variant:normal;font-weight:normal;font-size:26.6666px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.06666"
+         x="239.18906"
+         y="270.77414">ω</tspan></text>
+    <text
+       id="text29-6-1"
+       xml:space="preserve"
+       x="262.57062"
+       y="276.18729"
+       style="font-size:12.8px;fill:#ff0000;stroke-width:1.06666"><tspan
+         id="tspan30-2-2"
+         style="font-variant:normal;font-weight:normal;font-size:17.3334px;font-family:'DejaVu Sans';writing-mode:lr-tb;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.06666"
+         x="262.57062"
+         y="276.18729">foc–n</tspan></text>
   </g>
 </svg>
