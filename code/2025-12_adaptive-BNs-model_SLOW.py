@@ -16,6 +16,93 @@ import multiprocessing
 from numba import jit
 
 
+# def hebbianV(wij, delb_i, delb_j, eps):
+#     """Hebbian learning from consistency/inconsistency of belief change"""
+#     return eps * delb_i * delb_j
+
+
+# REMOVED FOR NOW
+# def socialconformity(wij, Wij, mu):
+#     """Social conformity on BN edge weights."""
+#     return mu * (Wij - wij) if ~np.isnan(Wij) else 0
+
+
+# @jit(nopython=True)
+# def decay(wij, lam):
+#     """Decay term for edge weights"""
+#     return -lam * wij
+
+
+def social_energy(belief, social_beliefs, rho):
+    """Calculate social energy for a belief value"""
+    return -rho * belief * np.sum(social_beliefs)
+
+
+def personal_energy(
+    beliefs,
+    dim,
+    edge_weights,
+    edge_list,
+    external_pressure=None,
+    external_pressure_strength=0,
+):
+    """Calculate personal energy for a specific dimribute."""
+    H = 0.0
+    for n, edge in enumerate(edge_list):
+        if dim in edge:
+            H -= edge_weights[n] * beliefs[edge[0]] * beliefs[edge[1]]
+    if external_pressure is not None:
+        H += -external_pressure_strength * beliefs[external_pressure] * 1
+    return H
+
+
+def glauber_probabilities_withSocial(
+    dim,
+    agent_beliefs,
+    agent_edgeweights,
+    edge_list,
+    social_beliefs,
+    belief_options,
+    rho,
+    beta,
+    external_pressure=(None, 0),
+):
+    """Compute Glauber transition probabilities for a specific belief."""
+    original_value = agent_beliefs[dim]
+    curr_external_pressure = external_pressure[0]
+    curr_external_pressure_strength = external_pressure[1]
+
+    H0 = personal_energy(
+        agent_beliefs,
+        dim,
+        agent_edgeweights,
+        edge_list,
+        curr_external_pressure,
+        curr_external_pressure_strength,
+    )
+    H_soc_0 = social_energy(original_value, social_beliefs, rho)
+
+    H = np.zeros(len(belief_options))
+    H_soc = np.zeros(len(belief_options))
+    for i, opt in enumerate(belief_options):
+        agent_beliefs[dim] = opt
+        H[i] = personal_energy(
+            agent_beliefs,
+            dim,
+            agent_edgeweights,
+            edge_list,
+            curr_external_pressure,
+            curr_external_pressure_strength,
+        )
+        H_soc[i] = social_energy(opt, social_beliefs, rho)
+
+    agent_beliefs[dim] = original_value
+
+    delH = (H - H0) + (H_soc - H_soc_0)
+    exp_term = 1 / (1 + np.exp(beta * delH))
+    return exp_term / np.sum(exp_term)
+
+
 def initialise_agents_and_network(params):
     """Initialize social network of agents with personal belief networks"""
     np.random.seed(params["seed"])
@@ -100,134 +187,23 @@ def initialise_agents_and_network(params):
 # )
 
 
-#################################
-#####   UPDATE FUNCTIONS    #####
-#################################
-
-# REMOVED FOR NOW
-# def socialconformity(wij, Wij, mu):
-#     """Social conformity on BN edge weights."""
-#     return mu * (Wij - wij) if ~np.isnan(Wij) else 0
-
-
-def social_energy(belief, social_beliefs, rho):
-    """Calculate social energy for a belief value"""
-    return 0 if len(social_beliefs) == 0 else -rho * belief * np.sum(social_beliefs)
-
-
-def personal_energy(
-    beliefs,
-    dim,
-    edge_weights,
-    edge_list,
-    edge_mask,
-    external_pressure=None,
-    external_pressure_strength=0,
-):
-    """Calculate personal energy for a specific dim"""
-    H = sum(
-        -edge_weights[edge_mask]
-        * beliefs[edge_list[edge_mask][:, 0]]
-        * beliefs[edge_list[edge_mask][:, 1]]
-    )
-    if external_pressure is not None and dim == external_pressure:
-        H += -external_pressure_strength * beliefs[external_pressure] * 1
-    return H
-
-
-#################################
-#####  FAST   #####
-#################################
-def glauber_fast(
-    dim,
-    agent_beliefs,
-    belief_options,
-    adjacent_belief_inds,
-    adjacent_edge_weights,
-    social_beliefs,
-    rho,
-    beta,
-    external_pressure=(None, 0),
-):
-    old_belief = agent_beliefs[dim]
-    adjacent_beliefs = agent_beliefs[adjacent_belief_inds]
-
-    # delta H personal
-    dH = -(belief_options - old_belief) * np.sum(
-        adjacent_edge_weights * adjacent_beliefs
-    )
-
-    # external pressure
-    if dim == external_pressure[0]:
-        dH += -(belief_options - old_belief) * external_pressure[1]
-
-    # delta H social
-    if len(social_beliefs) > 0:
-        dH += -rho * (belief_options - old_belief) * np.sum(social_beliefs)
-
-    x = beta * dH
-    p = 1.0 / (1.0 + np.exp(x))
-    return p / p.sum()
-
-
-def glauber_probabilities_withSocial(
-    dim,
-    agent_beliefs,
+def update_edge_weights(
     agent_edgeweights,
+    del_beliefs,
     edge_list,
-    edge_mask,
-    social_beliefs,
-    belief_options,
-    rho,
-    beta,
-    external_pressure=(None, 0),
+    eps,
+    lam,
 ):
-    """Compute Glauber transition probabilities for a specific belief"""
-    original_value = agent_beliefs[dim]
-    curr_external_pressure = external_pressure[0]
-    curr_external_pressure_strength = external_pressure[1]
-
-    # H0 = personal_energy(
-    #     agent_beliefs,
-    #     dim,
-    #     agent_edgeweights,
-    #     edge_list,
-    #     edge_mask,
-    #     curr_external_pressure,
-    #     curr_external_pressure_strength,
-    # )
-    # H_soc_0 = social_energy(original_value, social_beliefs, rho)
-
-    H = np.zeros(len(belief_options))
-    H_soc = np.zeros(len(belief_options))
-
-    for i, opt in enumerate(belief_options):
-        agent_beliefs[dim] = opt
-        H[i] = personal_energy(
-            agent_beliefs,
-            dim,
-            agent_edgeweights,
-            edge_list,
-            edge_mask,
-            curr_external_pressure,
-            curr_external_pressure_strength,
+    """Update all edge weights for an agent."""
+    for n, edge in enumerate(edge_list):
+        i, j = edge
+        delta = (
+            # hebbianV(weight, del_beliefs[i], del_beliefs[j], eps)
+            eps * del_beliefs[i] * del_beliefs[j]
+            # + delta_social
+            - lam * agent_edgeweights[n]
         )
-        H_soc[i] = social_energy(opt, social_beliefs, rho)
-        if opt == original_value:
-            H0 = H[i]
-            H_soc_0 = H_soc[i]
-    agent_beliefs[dim] = original_value
-
-    delH = (H - H0) + (H_soc - H_soc_0)
-    exp_term = 1 / (1 + np.exp(beta * delH))
-    return exp_term / np.sum(exp_term)
-
-
-def update_edge_weights(agent_edgeweights, del_beliefs, edge_list, eps, lam):
-    """Update all edge weights for an agent"""
-    hebbian = eps * del_beliefs[edge_list[:, 0]] * del_beliefs[edge_list[:, 1]]
-    decay = -lam * agent_edgeweights
-    agent_edgeweights += hebbian + decay
+        agent_edgeweights[n] += delta
     return agent_edgeweights
 
 
@@ -236,7 +212,6 @@ def update_beliefs(
     agent_edgeweights,
     social_beliefs,
     edge_list,
-    edge_masks,
     belief_dimensions,
     focal_dim,
     belief_options,
@@ -256,41 +231,40 @@ def update_beliefs(
     np.random.shuffle(belief_dimensions_shuffled)
 
     for dim in belief_dimensions_shuffled:
-        edge_idx = np.where(
-            edge_masks[dim] & ((edge_list[:, 0] == dim) | (edge_list[:, 1] == dim))
-        )[0]
-        adjacent_beliefs = np.where(
-            edge_list[edge_idx][:, 0] == dim,
-            edge_list[edge_idx][:, 1],
-            edge_list[edge_idx][:, 0],
-        )
-        adjacent_edge_weights = agent_edgeweights[edge_idx]
-        ps = glauber_fast(
+        # Get social beliefs for focal dim only
+        # if dim == focal_dim and len(neighbours) > 0:
+        #     social_beliefs = [agent_dict[ag]["x"][dim] for ag in neighbours]
+        # else:
+        #     social_beliefs = np.array([])
+        # Update belief using Glauber probabilities
+        ps = glauber_probabilities_withSocial(
             dim,
-            agent_beliefs,
-            belief_options,
-            adjacent_beliefs,
-            adjacent_edge_weights,
+            agent_beliefs,  # should this be x (one belief updated afte rthe next) or x_prior (all simultaneous)? DECISION: use x here, not x_prior (see 2025-12-18)
+            agent_edgeweights,
+            edge_list,
             social_beliefs if dim == focal_dim else np.array([]),
+            belief_options,
             rho,
             beta,
-            external_pressure,
+            external_pressure=external_pressure,
         )
-        # ps = glauber_probabilities_withSocial(
-        #     dim,
-        #     agent_beliefs,
-        #     agent_edgeweights,
-        #     edge_list,
-        #     edge_masks[dim],
-        #     social_beliefs if dim == focal_dim else np.array([]),
-        #     belief_options,
-        #     rho,
-        #     beta,
-        #     external_pressure=external_pressure,
-        # )
         agent_beliefs[dim] = np.random.choice(belief_options, p=ps)
     belief_trend = agent_beliefs - agent_prior_beliefs
     return agent_beliefs, belief_trend
+
+
+# def update_belief_trend(agent, x_prior, params):
+#     """Update agent belief_trend."""
+#     # belief_dimensions = params["belief_dimensions"]
+#     # x = agent["x"]
+#     # belief_trend = np.array([x[dim] - x_prior[dim] for dim in belief_dimensions])
+
+#     agent["del_b_past"].append(belief_trend)
+#     if len(agent["del_b_past"]) > params["memory"]:
+#         # forget oldest del_b vector.
+#         agent["del_b_past"] = agent["del_b_past"][1:]
+#     new_del_b = np.mean(agent["del_b_past"], axis=0)
+#     agent["del_b"] = dict(zip(belief_dimensions, new_del_b))
 
 
 def take_snapshot(t, agent_dict, params):
@@ -298,11 +272,6 @@ def take_snapshot(t, agent_dict, params):
     edge_list = params["edge_list"]
     belief_dimensions = params["belief_dimensions"]
     focal_dim = params["focal_dim"]
-    edge_masks = {
-        dim: (np.array(edge_list)[:, 0] == dim) | (np.array(edge_list)[:, 1] == dim)
-        for dim in belief_dimensions
-    }
-
     curr_external_pressure = (
         params["external_pressure"] if t in params["external_event_times"] else None
     )
@@ -324,9 +293,8 @@ def take_snapshot(t, agent_dict, params):
                 curr_external_pressure_strength,
             ]
         )
-        neighbours = agent["neighbours"]
         row.extend(
-            [np.nan, len(neighbours)]
+            [np.nan, np.nan]
         )  # 1st arg could be filled with list of agent neighbours for t=0, 2nd will be filled with number of social neighbours
         full_personal_energy = np.sum(
             [
@@ -335,9 +303,8 @@ def take_snapshot(t, agent_dict, params):
                     dim,
                     agent["edgeweights"],
                     edge_list,
-                    edge_masks[dim],
-                    curr_external_pressure,
-                    curr_external_pressure_strength,
+                    (curr_external_pressure if dim == focal_dim else None),
+                    (curr_external_pressure_strength if dim == focal_dim else 0),
                 )
                 for dim in belief_dimensions
             ]
@@ -346,12 +313,16 @@ def take_snapshot(t, agent_dict, params):
             agent["x"],
             focal_dim,
             agent["edgeweights"],
-            np.array(edge_list),
-            edge_masks[focal_dim],
+            edge_list,
             curr_external_pressure,
             curr_external_pressure_strength,
         )
-        social_beliefs = [agent_dict[ag]["x"][focal_dim] for ag in neighbours]
+        neighbours = agent["neighbours"]
+        if len(neighbours) > 0:
+            social_beliefs = [agent_dict[ag]["x"][focal_dim] for ag in neighbours]
+        else:
+            social_beliefs = np.array([])
+
         full_social_energy = social_energy(
             agent["x"][focal_dim], social_beliefs, params["rho"]
         )
@@ -367,10 +338,6 @@ def run_simulation(params):
     belief_dimensions = params["belief_dimensions"]
     belief_options = params["belief_options"]
     focal_dim = params["focal_dim"]
-    edge_masks = {
-        dim: (np.array(edge_list)[:, 0] == dim) | (np.array(edge_list)[:, 1] == dim)
-        for dim in belief_dimensions
-    }
 
     # Initialize agents
     agent_dict = initialise_agents_and_network(params)
@@ -409,8 +376,7 @@ def run_simulation(params):
                 agent_beliefs,
                 agent_edgeweights,
                 social_beliefs,
-                np.array(edge_list),
-                edge_masks,
+                edge_list,
                 belief_dimensions,
                 focal_dim,
                 belief_options,
@@ -427,7 +393,7 @@ def run_simulation(params):
             agent["edgeweights"] = update_edge_weights(
                 agent_edgeweights,
                 agent["del_b"],
-                np.array(edge_list),
+                edge_list,
                 params["eps"],
                 params["lam"],
             )
@@ -479,9 +445,7 @@ def generate_filename(params, results_folder):
     )
 
 
-def run_one(
-    seed, eps, mu, lam, initial_w, rho, beta, link_prob, base_params, results_folder
-):
+def run_one(seed, eps, mu, lam, initial_w, rho, beta, base_params, results_folder):
     params = base_params.copy()
     params.update(
         {
@@ -491,7 +455,6 @@ def run_one(
             "initial_w": initial_w,
             "rho": rho,
             "beta": beta,
-            "link_prob": link_prob,
             "seed": seed,
         }
     )
@@ -560,31 +523,22 @@ if __name__ == "__main__":
     rho_val = 1.0 / 3.0  # 1 higher
     lam = 0.005  # 1 higher
     beta = 3.0  # 1 lower, 1 higher
-    link_prob = 10 / 100
     param_combis = [
-        [0.0, 0.0, 0.0, initial_w, rho_val, beta, link_prob],  # fixed
-        [eps_val, mu_val, lam, initial_w, rho_val, beta, link_prob],  # adaptive
-        # BETA
-        # [0.0, 0.0, 0.0, initial_w, rho_val, 1.5],
-        # [eps_val, mu_val, lam, initial_w, rho_val, 1.5],
-        # [0.0, 0.0, 0.0, initial_w, rho_val, 6.0],
-        # [eps_val, mu_val, lam, initial_w, rho_val, 6.0],
-        # LAMBDA X EPS
-        # [2 * eps_val, mu_val, lam, initial_w, rho_val, beta],  # adaptive
-        # [0.5 * eps_val, mu_val, lam, initial_w, rho_val, beta],  # adaptive
-        # [eps_val, mu_val, 2* lam, initial_w, rho_val, beta],  # adaptive
-        # [eps_val, mu_val, 0* lam, initial_w, rho_val, beta],  # adaptive
-        # INTIAL W
-        # [0.0, 0.0, 0.0, 2 * initial_w, rho_val, beta],  # fixed
-        # [eps_val, mu_val, lam, 2 * initial_w, rho_val, beta],  # adaptive
-        # RHO
-        # [0.0, 0.0, 0.0, initial_w, 2 * rho_val, beta],  # fixed
-        # [eps_val, mu_val, lam, initial_w, 2* rho_val, beta],  # adaptive
-        # INTIAL W
-        # [0.0, 0.0, 0.0, 2 * initial_w, rho_val, beta],  # fixed
-        # [eps_val, mu_val, lam, 2 * initial_w, rho_val, beta],  # adaptive
+        [0.0, 0.0, 0.0, initial_w, rho_val, beta],  # fixed
+        [eps_val, mu_val, lam, initial_w, rho_val, beta],  # adaptive
+        [0.0, 0.0, 0.0, initial_w, rho_val, 1.0],
+        [eps_val, mu_val, lam, initial_w, rho_val, 1.0],
+        [0.0, 0.0, 0.0, initial_w, rho_val, 5.0],
+        [eps_val, mu_val, lam, initial_w, rho_val, 5.0],
+        [eps_val, mu_val, 4 * lam, initial_w, rho_val, beta],  # adaptive
+        [0.5 * eps_val, mu_val, lam, initial_w, rho_val, beta],  # adaptive
+        [2 * eps_val, mu_val, lam, initial_w, rho_val, beta],  # adaptive
+        [0.0, 0.0, 0.0, 2 * initial_w, rho_val, beta],  # fixed
+        [eps_val, mu_val, lam, 2 * initial_w, rho_val, beta],  # adaptive
+        [0.0, 0.0, 0.0, initial_w, 2 * rho_val, beta],  # fixed
+        [eps_val, mu_val, lam, initial_w, 2 * rho_val, beta],  # adaptive
     ]
-    ext_strengths = [0, 1, 2, 4, 8, 16]  # 6 external influences
+    ext_strengths = [0, 1, 2, 4, 8, 16]  # 6 exter
 
     # Results folder
     results_folder = "2025-12-16/sims/"
@@ -593,33 +547,9 @@ if __name__ == "__main__":
     if not os.path.isdir(results_folder):
         os.mkdir(results_folder)
 
-    # Test
-    #
-    # import cProfile
-    # import pstats
-    # import io
-
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-    # eps, mu, lam, initial_w, rho, beta = param_combis[0]
-    # seed = 0
-    # base_params["external_pressure_strength"] = 1
-    # run_one(seed, eps, mu, lam, initial_w, rho, beta, base_params, results_folder)
-    # profiler.disable()
-    # # Print statistics
-    # s = io.StringIO()
-    # ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
-    # ps.print_stats(30)  # Print top 30 functions
-    # print(s.getvalue())
-
-    # # Also sort by total time
-    # print("\n" + "=" * 80)
-    # print("SORTED BY TOTAL TIME:")
-    # print("=" * 80)
-    # s = io.StringIO()
-    # ps = pstats.Stats(profiler, stream=s).sort_stats("tottime")
-    # ps.print_stats(30)
-    # print(s.getvalue())
+    # Run experiments
+    # for seed in range(20):
+    #    for eps, mu, lam, initial_w in param_combis:
 
     # Run in parallel
     seeds = np.arange(0, 100)
@@ -628,18 +558,9 @@ if __name__ == "__main__":
     ]
     for extEvent_strength in ext_strengths:
         base_params["external_pressure_strength"] = extEvent_strength
-        Parallel(n_jobs=max(1, multiprocessing.cpu_count() - 3))(
+        Parallel(n_jobs=max(1, multiprocessing.cpu_count() - 2))(
             delayed(run_one)(
-                seed,
-                eps,
-                mu,
-                lam,
-                initial_w,
-                rho,
-                beta,
-                link_prob,
-                base_params,
-                results_folder,
+                seed, eps, mu, lam, initial_w, rho, beta, base_params, results_folder
             )
-            for eps, mu, lam, initial_w, rho, beta, link_prob, seed in param_combis_withSeed
+            for eps, mu, lam, initial_w, rho, beta, seed in param_combis_withSeed
         )
