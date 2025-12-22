@@ -46,7 +46,7 @@ def personal_energy(
     external_pressure=None,
     external_pressure_strength=0,
 ):
-    """Calculate personal energy for a specific dimribute."""
+    """Calculate personal energy for a specific dim."""
     H = 0.0
     for n, edge in enumerate(edge_list):
         if dim in edge:

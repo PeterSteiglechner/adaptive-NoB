@@ -55,10 +55,10 @@ params["edgeNames"] = [f"{i}_{j}" for i, j in params["edge_list"]]
 
 pressures = dict(
     no_pressure=0,
-    # weak_focal=1,
-    # medium_focal=2,
-    # strong_focal=4,
-    # xxstrong_focal=8,
+    weak_focal=1,
+    medium_focal=2,
+    strong_focal=4,
+    xxstrong_focal=8,
     xxxstrong_focal=16,
 )
 
@@ -91,7 +91,7 @@ params["rho"] = rho
 params["beta"] = beta
 params["external_pressure_strength"] = pressures["no_pressure"]
 filename = generate_filename(params, resultsfolder + "sims/")
-df = pd.read_csv(filename + ".csv", low_memory=False)
+df = pd.read_csv(filename + "_detailed.csv", low_memory=False)
 
 
 #################################
@@ -100,7 +100,7 @@ df = pd.read_csv(filename + ".csv", low_memory=False)
 
 
 # %%
-seeds = list(range(20))
+seeds = list(range(100))
 fixadaptive = [(0.0, 0.0), (eps_adaptive, lam_adaptive)]
 Nruns = len(pressures) * len(seeds) * len(fixadaptive)
 
@@ -135,6 +135,7 @@ for event, pressure_strength in pressures.items():
             params["lam"] = lam
 
             filename = generate_filename(params, resultsfolder + "sims/")
+            # filename += "_detailed"
             df = pd.read_csv(filename + ".csv", low_memory=False)
 
             meta_pressure_strength[run_idx] = pressure_strength
@@ -297,6 +298,8 @@ ds["time"] = ds["time"].astype(np.float32)
 ds["seed"] = ds["seed"].astype(np.uint8)
 ds["agent_id"] = ds["agent_id"].astype(np.uint8)
 ds["belief"]
-ds.to_netcdf("processed_data/2025-12-16_modelAdaptiveBN_results.ncdf")
+ds.to_netcdf(
+    f"processed_data/2025-12-16_modelAdaptiveBN_results{'_detailed' if 'detailed' in filename else ''}.ncdf"
+)
 # %%
 # %%

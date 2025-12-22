@@ -159,7 +159,7 @@ def glauber_fast(
 
     # external pressure
     if dim == external_pressure[0]:
-        dH += -(belief_options - old_belief) * external_pressure[1]
+        dH += -(belief_options - old_belief) * 1 * external_pressure[1]
 
     # delta H social
     if len(social_beliefs) > 0:
@@ -451,11 +451,7 @@ def run_simulation(params):
     ]
     snapshot_df = pd.concat(snapshot_dfs, ignore_index=True)
     snap_avgd = []
-    for timeperiod in (
-        [(0, 0), (0, 9), (90, 99)]
-        + [(i, i) for i in range(90, 100)]
-        + [(140, 149), (190, 199), (290, 299)]
-    ):
+    for timeperiod in params["store_times"]:
         a = (
             snapshot_df.loc[snapshot_df["time"].between(timeperiod[0], timeperiod[1])]
             .groupby("agent_id", as_index=False)
@@ -511,6 +507,8 @@ def run_one(
     )
     results = run_simulation(params)
     filename = generate_filename(params, results_folder)
+    if len(params["track_times"]) > 0.33 * params["T"]:
+        filename += "_detailed"
     # #### Here calculate metrics ####
     #
     #
@@ -540,6 +538,11 @@ if __name__ == "__main__":
         + list(range(140, 151))
         + list(range(190, 201))
         + list(range(290, 301)),
+        "store_times": (
+            [(0, 0), (0, 9), (90, 99)]
+            + [(i, i) for i in range(90, 100)]
+            + [(140, 149), (190, 199), (290, 299)]
+        ),
         "external_event_times": list(range(100, 150)),
         "external_pressure": 0,
         # "external_pressure_strength": None,
@@ -623,12 +626,14 @@ if __name__ == "__main__":
 
     # Run in parallel
     seeds = np.arange(0, 100)
+    # base_params["track_times"] = np.arange(0, 301)
+    # base_params["store_times"] = [(i, i) for i in np.arange(0, 301)]
     param_combis_withSeed = [
         param_combi + [seed] for param_combi in param_combis for seed in seeds
     ]
     for extEvent_strength in ext_strengths:
         base_params["external_pressure_strength"] = extEvent_strength
-        Parallel(n_jobs=max(1, multiprocessing.cpu_count() - 3))(
+        Parallel(n_jobs=max(1, multiprocessing.cpu_count() - 2))(
             delayed(run_one)(
                 seed,
                 eps,

@@ -124,7 +124,7 @@ for ax, adaptive in zip(axs, [False, True]):
     ax.set_xlabel(r"external pressure $s$")
     ax.set_ylim(-0.0, 1.0)
 for (x, y), type in zip(
-    [(0.6, 0.1), (0.2, 0.365), (1.2, 0.7), (0.2, 0.48), (0.2, 0.57), (0.0, 0.9)],
+    [(0.6, 0.1), (0.2, 0.4), (2.6, 0.7), (0.3, 0.56), (0.3, 0.64), (0.0, 0.9)],
     responses,
 ):
     bboxprops = dict(
