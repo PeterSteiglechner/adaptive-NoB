@@ -326,6 +326,7 @@ print("\\\\")
 # -------    PLOT METRICS
 # ----------------------------------------------
 ds.sel(time=94.5).focal_belief.mean()
+
 #%%
 
 t=194.5
@@ -477,5 +478,33 @@ for ax, s in zip(axs.flatten(),[0,1,2,4,8,16]):
     ax.set_ylim(-1.15,1.15)
 fig.subplots_adjust(left=0.07, top=0.93, right=0.98, bottom=0.1)
 plt.savefig( f"figs/focalBeliefsOverTime_{condition_string}.png")
+
+# %%
+# ----------------------------------------------
+# -------    VARIANCE OF RESPONSE
+# ----------------------------------------------
+
+ds
+# %%
+a = ds.sel(s_ext=4, adaptive=True)["response_type"].to_dataframe()
+a["response_type"] = a["response_type"].map(response_map_inv)
+pd.DataFrame(a.groupby("seed")["response_type"].value_counts()).reset_index().pivot_table(columns="seed", index="response_type", values="count").mean(axis=1)
+
+fig, axs = plt.subplots(1,2, figsize=(12/2.54, 6/2.54), sharex=True, sharey=True)
+for ax, ad in zip(axs, [False, True]):
+    a = ds.sel(s_ext=4, adaptive=ad)["response_type"].to_dataframe()
+    a["response_type"] = a["response_type"].map(response_map_inv)
+    a["response_type"] = pd.Categorical(a["response_type"], categories = [r for r in response_map.keys() if r!="NA"])
+    
+    sns.histplot(pd.DataFrame(a.groupby("seed")["response_type"].value_counts()).reset_index().pivot_table(columns="seed", index="response_type", values="count").T/len(ds.agent_id), bins=np.arange(0,1.01, 0.1), alpha=1, palette=cmap, color="response_type", multiple="dodge", ax=ax, legend=ad, edgecolors='none')
+    ax.set_title("fixed" if not ad else "adaptive", x=0.75 if ad else 0.25)
+    ax.set_xlabel("frequency")
+    leg = ax.get_legend()
+    if leg:
+        leg.set_title("")
+axs[0].set_ylabel("Nr of simulations")
+fig.suptitle(fr"$s=4$, baseline configuration", fontsize=bigfs)
+fig.subplots_adjust(bottom=0.17, right=0.98)
+plt.savefig("figs/Distribution_responsetypes_variance.png", dpi=600)
 
 # %%

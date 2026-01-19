@@ -172,57 +172,56 @@ def glauber_fast(
     return p / p.sum()
 
 
-def glauber_probabilities_withSocial(
-    dim,
-    agent_beliefs,
-    agent_edgeweights,
-    edge_list,
-    edge_mask,
-    social_beliefs,
-    belief_options,
-    rho,
-    beta,
-    external_pressure=(None, 0),
-):
-    """Compute Glauber transition probabilities for a specific belief"""
-    original_value = agent_beliefs[dim]
-    curr_external_pressure = external_pressure[0]
-    curr_external_pressure_strength = external_pressure[1]
+# def glauber_probabilities_withSocial(
+#     dim,
+#     agent_beliefs,
+#     agent_edgeweights,
+#     edge_list,
+#     edge_mask,
+#     social_beliefs,
+#     belief_options,
+#     rho,
+#     beta,
+#     external_pressure=(None, 0),
+# ):
+#     original_value = agent_beliefs[dim]
+#     curr_external_pressure = external_pressure[0]
+#     curr_external_pressure_strength = external_pressure[1]
 
-    # H0 = personal_energy(
-    #     agent_beliefs,
-    #     dim,
-    #     agent_edgeweights,
-    #     edge_list,
-    #     edge_mask,
-    #     curr_external_pressure,
-    #     curr_external_pressure_strength,
-    # )
-    # H_soc_0 = social_energy(original_value, social_beliefs, rho)
+#     # H0 = personal_energy(
+#     #     agent_beliefs,
+#     #     dim,
+#     #     agent_edgeweights,
+#     #     edge_list,
+#     #     edge_mask,
+#     #     curr_external_pressure,
+#     #     curr_external_pressure_strength,
+#     # )
+#     # H_soc_0 = social_energy(original_value, social_beliefs, rho)
 
-    H = np.zeros(len(belief_options))
-    H_soc = np.zeros(len(belief_options))
+#     H = np.zeros(len(belief_options))
+#     H_soc = np.zeros(len(belief_options))
 
-    for i, opt in enumerate(belief_options):
-        agent_beliefs[dim] = opt
-        H[i] = personal_energy(
-            agent_beliefs,
-            dim,
-            agent_edgeweights,
-            edge_list,
-            edge_mask,
-            curr_external_pressure,
-            curr_external_pressure_strength,
-        )
-        H_soc[i] = social_energy(opt, social_beliefs, rho)
-        if opt == original_value:
-            H0 = H[i]
-            H_soc_0 = H_soc[i]
-    agent_beliefs[dim] = original_value
+#     for i, opt in enumerate(belief_options):
+#         agent_beliefs[dim] = opt
+#         H[i] = personal_energy(
+#             agent_beliefs,
+#             dim,
+#             agent_edgeweights,
+#             edge_list,
+#             edge_mask,
+#             curr_external_pressure,
+#             curr_external_pressure_strength,
+#         )
+#         H_soc[i] = social_energy(opt, social_beliefs, rho)
+#         if opt == original_value:
+#             H0 = H[i]
+#             H_soc_0 = H_soc[i]
+#     agent_beliefs[dim] = original_value
 
-    delH = (H - H0) + (H_soc - H_soc_0)
-    exp_term = 1 / (1 + np.exp(beta * delH))
-    return exp_term / np.sum(exp_term)
+#     delH = (H - H0) + (H_soc - H_soc_0)
+#     exp_term = 1 / (1 + np.exp(beta * delH))
+#     return exp_term / np.sum(exp_term)
 
 
 def update_edge_weights(agent_edgeweights, del_beliefs, edge_list, eps, lam):
@@ -564,7 +563,7 @@ if __name__ == "__main__":
     param_combis = SAparams
 
     # Results folder
-    results_folder = "sims/2026-01-16_singleRuns/"
+    results_folder = "sims/2026-01-16_singleRuns_SensAna2/"
     if not os.path.isdir(results_folder.split("/")[0]):
         os.mkdir(results_folder.split("/")[0])
     if not os.path.isdir(results_folder):
