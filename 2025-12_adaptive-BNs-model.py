@@ -1,4 +1,4 @@
-#%%
+# %%
 """
 Adaptive Belief Networks Model
 version 2025-12-17, Peter Steiglechner, steiglechner@csh.ac.at
@@ -14,6 +14,7 @@ from scipy.sparse import csr_matrix
 import time
 from joblib import Parallel, delayed
 import multiprocessing
+
 # from numba import jit
 
 
@@ -353,7 +354,7 @@ def run_simulation(params):
     # Initialize agents
     agent_dict = initialise_agents_and_network(params)
     snapshots = take_snapshot(0, agent_dict, params)
-    
+
     # Main simulation loop
     T = params["T"]
     time_steps = np.arange(0, T + 1, 1)
@@ -451,7 +452,17 @@ def generate_filename(params, results_folder):
 
 
 def run_one(
-    seed, eps, mu, lam, initial_w, rho, beta, link_prob, s_ext, base_params, results_folder
+    seed,
+    eps,
+    mu,
+    lam,
+    initial_w,
+    rho,
+    beta,
+    link_prob,
+    s_ext,
+    base_params,
+    results_folder,
 ):
     params = base_params.copy()
     params.update(
@@ -481,14 +492,12 @@ def run_one(
         f"ext pressure on {params['external_pressure']}",
         f"with s={params['external_pressure_strength']}",
     )
-    results = run_simulation(params)
     filename = generate_filename(params, results_folder)
     if len(params["track_times"]) > 0.33 * params["T"]:
         filename += "_detailed"
-    # #### Here calculate metrics ####
-    #
-    #
-    results.to_csv(filename + ".csv")
+    if not os.path.isfile(filename + ".csv"):
+        results = run_simulation(params)
+        results.to_csv(filename + ".csv")
     return filename
 
 
@@ -512,10 +521,10 @@ if __name__ == "__main__":
             + list(range(140, 151))
             + list(range(190, 201))
             # + list(range(290, 301))
-        ), 
+        ),
         "store_times": (
             [(0, 0), (0, 9), (90, 99)]
-            #+ [(i, i) for i in range(90, 100)]
+            # + [(i, i) for i in range(90, 100)]
             + [(140, 149), (190, 199)]
         ),
         "external_event_times": list(range(100, 150)),
@@ -538,15 +547,20 @@ if __name__ == "__main__":
     lam = 0.005  # 1 higher
     beta = 3.0  # 1 lower, 1 higher
     link_prob = 10 / 100
-    ext_strengths = [1,2,4]#[0,1,2,4,8,16]  # 6 external influences
+    ext_strengths = [1, 2, 4]  # [0,1,2,4,8,16]  # 6 external influences
 
     SAparams = [
-        [eps_val, 0.0, lam_val, omega0, rho_val, beta, link_prob, s_ext] for eps_val, lam_val in [(0.0,0.0), (eps, lam)] for omega0 in [0.1, 0.2, 0.4] for beta in [1.5, 2.25, 3.0, 4.5, 6.] for link_prob in [0.05, 0.1, 0.2, 0.5, 1] for s_ext in ext_strengths
+        [eps_val, 0.0, lam_val, omega0, rho_val, beta, link_prob, s_ext]
+        for eps_val, lam_val in [(0.0, 0.0), (eps, lam)]
+        for omega0 in [0.1, 0.2, 0.4]
+        for beta in [1.5, 2.25, 3.0, 4.5, 6.0]
+        for link_prob in [0.05, 0.1, 0.2, 0.5, 1]
+        for s_ext in ext_strengths
     ]
-    param_combis = [
-        # [0.0, 0.0, 0.0, initial_w, rho_val, beta, link_prob],  # fixed
-        [eps_val, 0.0, lam, omega0, rho_val, beta, link_prob, s_ext],  # adaptive
-    ]
+    # param_combis = [
+    #     # [0.0, 0.0, 0.0, initial_w, rho_val, beta, link_prob],  # fixed
+    #     [eps_val, 0.0, lam, omega0, rho_val, beta, link_prob, s_ext],  # adaptive
+    # ]
     param_combis = SAparams
 
     # Results folder
@@ -585,7 +599,7 @@ if __name__ == "__main__":
     # print(s.getvalue())
 
     # Run in parallel
-    seeds = np.arange(0, 10)
+    seeds = np.arange(10, 100)
     # base_params["track_times"] = np.arange(0, 301)
     # base_params["store_times"] = [(i, i) for i in np.arange(0, 301)]
     param_combis_withSeed = [
