@@ -63,13 +63,18 @@ response_map["NA"] = 99
 cat_type = pd.CategoricalDtype(categories=responses, ordered=True)
 svals = [0, 16]
 
+# cmap = dict(
+#     zip(
+#         responses,
+#         ["#7fc97f", "#fdc086", "#386cb0", "#beaed4", "#f0027f", "#bf5b17", "#666666"],
+#     )
+# )
 cmap = dict(
     zip(
-        responses,
-        ["#7fc97f", "#fdc086", "#386cb0", "#beaed4", "#f0027f", "#bf5b17", "#666666"],
+            responses+["NA"],
+            ["#4DAF4A", "#A6D854", "#469FDB", "#B8DFF3", "#7A0177", "#E41A1C",  "#666666"],
+        )
     )
-)
-
 # %%
 
 #################################
@@ -185,7 +190,7 @@ def plot_timeseries(df_pivot, final_values, T, t, window, dim, ext_pressure_stre
 dims = list(ds.belief.values)
 
 
-def plot_BN_ax(ag_b, ag_e, ax, intStart=100, intEnd=150, scaleE=1, scaleN=100, highlightfocal=True):
+def plot_BN_ax(ag_b, ag_e, ax, intStart=100, intEnd=150, scaleE=1, scaleN=100, highlightfocal=True, layout="spring"):
     G = nx.Graph()
     for a in dims:
         G.add_node(a, value=ag_b.loc[a, "belief_value"])
@@ -196,7 +201,10 @@ def plot_BN_ax(ag_b, ag_e, ax, intStart=100, intEnd=150, scaleE=1, scaleN=100, h
     cmap = plt.get_cmap("coolwarm")
     norm = plt.Normalize(vmin=-1, vmax=1)
     edge_colors = [cmap(norm(G.edges[e]["value"])) for e in edgelist]
-    pos = nx.spring_layout(G, weight="value", seed=1, k=0.9)
+    if layout=="circle":
+        pos = nx.circular_layout(G)    
+    else:
+        pos = nx.spring_layout(G, weight="value", seed=1, k=0.9)
     nx.draw_networkx_edges(
         G=G, pos=pos, edge_color=edge_colors, width=widths, edgelist=edgelist, ax=ax
     )
@@ -242,7 +250,7 @@ def plot_BN_ax(ag_b, ag_e, ax, intStart=100, intEnd=150, scaleE=1, scaleN=100, h
 
 
 def plot_timeseries_ag(
-    df_pivot, final_values, ag_b, ag_e, i, T, t, window, dim, ext_pressure_strength
+    df_pivot, final_values, ag_b, ag_e, i, T, t, window, dim, ext_pressure_strength, adaptive
 ):
     fig = plt.figure(figsize=(16 / 2.54, 5 / 2.54))
     gs = GridSpec(1, 3, width_ratios=[4, 1, 1.5], wspace=0.02)
@@ -350,12 +358,14 @@ def plot_timeseries_ag(
     )
 
     ax_net = fig.add_subplot(gs[2])
+    print( int(adaptive)==1, t!=0 )
     plot_BN_ax(
         ag_b,
         ag_e,
         ax_net,
         intStart=100,
         intEnd=150,
+        layout="spring" if int(adaptive)==1 and t!=0 else "circle"
     )
     fig.subplots_adjust(right=0.99, bottom=0.25)
     return
@@ -411,12 +421,13 @@ for t in times:
 # agent 90 is resilient
 # 13 is anti-conformist
 # agent 92 is a great resistant
+adaptive = True
 for ag_i in [90]:  # [8, 90, 92]:
-    ag = ds.sel(adaptive=True, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i)[
+    ag = ds.sel(adaptive=adaptive, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i)[
         ["belief_value"]
     ].to_dataframe()
     ag_edges = ds.sel(
-        adaptive=True, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i
+        adaptive=adaptive, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i
     )[["edge_weight"]].to_dataframe()
 
     times = [100]  # np.arange(0, 201, 1)
@@ -439,6 +450,7 @@ for ag_i in [90]:  # [8, 90, 92]:
             window,
             dim,
             ext_pressure_strength,
+            adaptive=adaptive
         )
         if len(times) > 10:
             plt.savefig(
@@ -554,7 +566,7 @@ for n, ag_i in enumerate(ags):  # [8, 90, 92]:
 
     df_pivot = df_pivot.loc[df_pivot.index <= T]
     if n==0:
-        axs["t"].plot([],[],lw=0.7, alpha=0.4, label="agent", color="grey")
+        axs["t"].plot([],[],lw=1, alpha=0.4, label="agent", color="grey")
         leg= axs["t"].legend(loc="center left")
         df_pivot.plot(ax = axs["t"], lw=0.3, alpha=0.2, legend=False, color="grey")
         axs["t"].set_xlabel("time")
@@ -609,7 +621,8 @@ for n, ag_i in enumerate(ags):  # [8, 90, 92]:
             intEnd=150,
             scaleN=100,
             scaleE=1.5,
-            highlightfocal=False
+            highlightfocal=False, 
+            layout="spring" if int(adaptive) and t>0 else "circle",
         )
 for l in ["a","b"]:
     # ConnectionPatch handles the transform internally so no need to get fig.transFigure
@@ -624,11 +637,11 @@ for l in ["a","b"]:
         mutation_scale=10,  # controls arrow head size
         linewidth=1,
     )
-    axs[l+f"{T0}"].text(1.05,0.05,rf"$t={T0}$", ha="right", va="bottom", transform=axs[l+f"{T0}"].transAxes, fontsize=smallfs)
-    axs[l+f"{T}"].text(1.05,0.05,rf"$t={T}$", ha="right", va="bottom", transform=axs[l+f"{T}"].transAxes, fontsize=smallfs)
+    axs[l+f"{T0}"].text(1.07,0.02,rf"$t={T0}$", ha="right", va="bottom", transform=axs[l+f"{T0}"].transAxes, fontsize=smallfs, rotation=40)
+    axs[l+f"{T}"].text(1.07,0.02,rf"$t={T}$", ha="right", va="bottom", transform=axs[l+f"{T}"].transAxes, fontsize=smallfs, rotation=40)
     fig.patches.append(arrow)
 
-fig.subplots_adjust(wspace=0.02, hspace=0.02, top=0.98,bottom=0.02, left=0.07, right=0.99)
+fig.subplots_adjust(wspace=0.04, hspace=0.04, top=0.98,bottom=0.02, left=0.07, right=0.99)
 
 for n, (i, y) in enumerate(zip(ags, [0.93, 0.43])):
     bboxprops = dict(
@@ -644,7 +657,7 @@ for n, ax in enumerate([axs["t"], axs[f"a{T0}"], axs[f"b{T0}"]]):
     ax.text(-0.12 if n==0 else 0, 0.975, string.ascii_uppercase[n], fontsize=12, fontdict={"weight":"bold"},va="top", ha="left", transform=ax.transAxes)
 
 print(np.sign(final_values)["belief_smooth"].value_counts())
-plt.savefig("figs/2026-01-08_examplesim_fixed.png")
+plt.savefig(f"figs/2026-01-21_examplesim_{'adaptive' if adaptive else 'fixed'}.png")
 # %%
 
 # %%

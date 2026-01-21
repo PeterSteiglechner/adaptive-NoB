@@ -23,7 +23,8 @@ plt.rcParams.update({"ytick.labelsize": smallfs})
 
 # %%
 condition_string = "baselineConfig"
-ds = xr.load_dataset(f"processed_data/2025-12-29_modelAdaptiveBN_{condition_string}_results_metricsOnly.ncdf", engine="netcdf4")
+# ds = xr.load_dataset(f"processed_data/2025-12-29_modelAdaptiveBN_{condition_string}_results_metricsOnly.ncdf", engine="netcdf4")
+ds = xr.load_dataset(f"processed_data/2026-01-19_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{0.01}.ncdf", engine="netcdf4")
 
 # %%
 belief_dimensions = list(range(ds.attrs["M"]))
@@ -41,18 +42,24 @@ responses = [
 response_map = {r: n for n, r in enumerate(responses)}
 response_map["NA"] = 99
 response_map_inv = {val: key for key, val in response_map.items()}
+# cmap = dict(
+#     zip(
+#         responses+["NA"],
+#         ["#7fc97f", "#fdc086", "#386cb0", "#beaed4", "#f0027f", "#bf5b17", "#666666"],
+#     )
+# )
 cmap = dict(
     zip(
-        responses+["NA"],
-        ["#7fc97f", "#fdc086", "#386cb0", "#beaed4", "#f0027f", "#bf5b17", "#666666"],
+            responses+["NA"],
+            ["#4DAF4A", "#A6D854", "#469FDB", "#B8DFF3", "#7A0177", "#E41A1C",  "#666666"],
+        )
     )
-)
 
 #%%
 # ----------------------------------------------
 # -------    NO PRESSURE: VARIANCE AND CONSENSUS
 # ----------------------------------------------
-adaptive=False
+adaptive=0
 a = (ds.sel(adaptive=adaptive, s_ext=0, time=94.5)[
         "focal_belief"
     ]>=0).sum(dim="agent_id")
@@ -60,7 +67,7 @@ a = (ds.sel(adaptive=adaptive, s_ext=0, time=94.5)[
 
 ds.sel(adaptive=adaptive, s_ext=0, time=94.5)[
         "focal_belief"
-    ].std(dim="agent_id").mean(dim="seed")
+    ].mean(dim="agent_id").mean(dim="seed")
 
 
 #%%
@@ -90,7 +97,7 @@ df_pivot = df.pivot(index="time", columns="agent_id", values="belief_smooth")
 
 
 countResponses = []
-for adaptive in [False, True]:
+for adaptive in [0,1]:
     for s_ext in ds.s_ext.values:
         if s_ext == 0:  # skip no intervention
             continue
@@ -282,12 +289,10 @@ metric2title = dict(
     external_energy = r"$D_{ext}$",    
     energy = r"$D_{tot}$",
 )
-# belief_metrics = [ "focal_belief", "abs_meanbelief_nonfocal"]
-# structure_metrics = ["bn_alpha",   "bn_avg_weighted_clustering", "bn_betweenness_centrality", "bn_abs_meanedge_tot", "bn_abs_meanedge_focal"]
-# structureValue_metrics = ["nr_balanced_triangles_tot", "nr_balanced_triangles_focal",  "bn_expected_influence",  ]
-# social_net_metrics = ["n_neighbours"] 
-# energy_metrics = [ "energy", "personalBN_energy", "personalBN_focal_energy", "personalBN_nonfocal_energy", "external_energy","social_energy",]
-all_metrics = metric2title.keys()#belief_metrics + social_net_metrics + energy_metrics + structureValue_metrics + structure_metrics
+
+
+all_metrics = metric2title.keys()
+
 t = 94.5
 ttt=  f"{t-4.5}-{t+4.5}" if (t%10) == 4.5 else t
 s_ext = 4
@@ -300,7 +305,7 @@ for metric in all_metrics:
 
     a = (
         ds
-        .sel(adaptive=True, time=t, s_ext=s_ext)[[metric, "response_type"]]
+        .sel(adaptive=1, time=t, s_ext=s_ext)[[metric, "response_type"]]
         .to_dataframe()
         .reset_index()
         .groupby("response_type")[metric]
@@ -328,13 +333,18 @@ print("\\\\")
 ds.sel(time=94.5).focal_belief.mean()
 
 #%%
-
-t=194.5
+responsesNames = ['persistent-positive',
+ 'non-persistent-positive',
+ 'compliant',
+ 'late-compliant',
+ 'resilient',
+ 'resistant']
+t=94.5
 cmap["NA"]="grey"
 for metric in all_metrics:
     print("".join(["#"]*10)+f".  {metric}")
     fig, axes = plt.subplots(1, 2, figsize=(16 / 2.54, 7 / 2.54), sharey=True)
-    for idx, adaptive_val in enumerate([False, True]):
+    for idx, adaptive_val in enumerate([0, 1]):
         data_subset = ds.sel(time=t, adaptive=adaptive_val, s_ext=[1,2,4,8,16])[["response_type", metric]].to_dataframe().reset_index()[["s_ext", "response_type", metric]]
         data_subset["response_type"] = data_subset["response_type"].map(response_map_inv)
         sns.boxplot(
@@ -342,13 +352,14 @@ for metric in all_metrics:
             x="s_ext",
             y=metric,
             hue="response_type",
+            hue_order=responsesNames,
             ax=axes[idx],
             fliersize=0,
             palette=cmap,
-            legend=adaptive_val == False,
+            legend=adaptive_val == 0,
             boxprops={"edgecolor": "white", "lw":0 }
         )
-        if adaptive_val == False:
+        if adaptive_val == 0:
             h,l = axes[idx].get_legend_handles_labels()
             axes[idx].legend(h,l,title="",ncol=2,fontsize=7, loc="lower left", columnspacing=0.2, handletextpad=0.1, handlelength=1)
         sns.stripplot(
@@ -356,6 +367,7 @@ for metric in all_metrics:
             x="s_ext",
             y=metric,
             hue="response_type",
+            hue_order=responsesNames,
             ax=axes[idx],
             size=1,
             alpha=0.4,
@@ -385,7 +397,7 @@ fig, axs = plt.subplots(2,3, sharex=True, sharey=True, figsize=(16/2.54, 8/2.54)
 for ax, metric in zip(axs.flatten(), energy_metrics):
     a = (
         ds
-        .sel(adaptive=True, time=[4.5,94.5,144.5,194.5,294.5], s_ext=s_ext)[[metric, "response_type"]]
+        .sel(adaptive=1, time=[4.5,94.5,144.5,194.5,294.5], s_ext=s_ext)[[metric, "response_type"]]
         .to_dataframe()
         .reset_index()
         .groupby(["response_type", "time"])[metric]
@@ -442,7 +454,7 @@ fig, axs = plt.subplots(2,3, sharex=True, sharey=True)
 for ax, s in zip(axs.flatten(), [0,1,2,4,8,16]):
     a = (
             ds
-            .sel(adaptive=True, time=[4.5,94.5,144.5,194.5,294.5], s_ext=s)[[metric, "response_type"]]
+            .sel(adaptive=1, time=[4.5,94.5,144.5,194.5,294.5], s_ext=s)[[metric, "response_type"]]
             .to_dataframe()
             .reset_index()
             .groupby(["response_type", "time"])[metric]
@@ -486,12 +498,12 @@ plt.savefig( f"figs/focalBeliefsOverTime_{condition_string}.png")
 
 ds
 # %%
-a = ds.sel(s_ext=4, adaptive=True)["response_type"].to_dataframe()
+a = ds.sel(s_ext=4, adaptive=1)["response_type"].to_dataframe()
 a["response_type"] = a["response_type"].map(response_map_inv)
 pd.DataFrame(a.groupby("seed")["response_type"].value_counts()).reset_index().pivot_table(columns="seed", index="response_type", values="count").mean(axis=1)
 
 fig, axs = plt.subplots(1,2, figsize=(12/2.54, 6/2.54), sharex=True, sharey=True)
-for ax, ad in zip(axs, [False, True]):
+for ax, ad in zip(axs, [0, 1]):
     a = ds.sel(s_ext=4, adaptive=ad)["response_type"].to_dataframe()
     a["response_type"] = a["response_type"].map(response_map_inv)
     a["response_type"] = pd.Categorical(a["response_type"], categories = [r for r in response_map.keys() if r!="NA"])

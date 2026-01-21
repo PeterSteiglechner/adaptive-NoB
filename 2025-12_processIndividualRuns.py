@@ -10,6 +10,7 @@ from functools import partial
 
 # %%
 resultsfolder = "sims/2026-01-16_singleRuns_sensAna2/"
+#resultsfolder = "sims/2025-12-29_singleRuns/"
 
 T = 200
 params = {
@@ -31,10 +32,14 @@ params["belief_dimensions"] = [str(i) for i in range(params["M"])]
 params["edge_list"] = list(combinations(params["belief_dimensions"], 2))
 params["edgeNames"] = [f"{i}_{j}" for i, j in params["edge_list"]]
 
+
 pressures = dict(
+    no_pressure=0,
     weak_focal=1,
     medium_focal=2,
     strong_focal=4,
+    xxstrong_focal=8,
+    xxxstrong_focal=16,
 )
 
 def generate_filename(params, results_folder):
@@ -213,21 +218,29 @@ def process_single_run(args):
         result['metrics']['bn_betweenness_centrality'][time_idx] = bc
     
     return result
-
-
-# Main execution
+#%%
 if __name__ == '__main__':
     seeds = list(range(100))
     fixadaptive = [(0.0, 0.0), (1.0, 0.005)]
     store_beliefAndEdges = False
-    
-    param_combis = [
-        [omega0, 1.0 / 3.0, beta, link_prob]
-        for omega0 in [0.1, 0.2, 0.4]
-        for beta in [1.5, 2.25, 3.0, 4.5, 6.0]
-        for link_prob in [0.05, 0.1, 0.2, 0.5, 1]
-    ]
-    
+
+    SA = True
+    if SA:
+        param_combis = [
+            [omega0, 1.0 / 3.0, beta, link_prob]
+            for omega0 in [0.1, 0.2, 0.4]
+            for beta in [1.5, 2.25, 3.0, 4.5, 6.0]
+            for link_prob in [0.05, 0.1, 0.2, 0.5, 1]
+        ]
+        pressures = {n:p for n,p in pressures.items() if p in [1,2,4]}
+    else:
+        param_combis = [
+            [omega0, 1.0 / 3.0, beta, link_prob]
+            for omega0 in [0.2]
+            for beta in [3.0]
+            for link_prob in [0.1]
+        ]
+
     focal_dim = params["focal_dim"]
     belief_dims = params["belief_dimensions"]
     edge_names = params["edgeNames"]
@@ -238,13 +251,13 @@ if __name__ == '__main__':
         (edge_lookup[f"{a}_{b}"], edge_lookup[f"{b}_{c}"], edge_lookup[f"{a}_{c}"])
         for a, b, c in triangles
     ]
-    
+
     for initial_w, rho, beta, link_prob in param_combis:
         params["initial_w"] = initial_w
         params["rho"] = rho
         params["beta"] = beta
         params["link_prob"] = link_prob
-        condition_string = f"omega{initial_w}_rho{rho:.2f}_beta{beta}_p{link_prob}"
+        condition_string = f"omega{initial_w}_rho{rho:.2f}_beta{beta}_p{link_prob}" if SA else "baselineConfig"
         print(f"\nProcessing: {condition_string}")
         
         # Build arguments for all runs
@@ -284,7 +297,7 @@ if __name__ == '__main__':
         metrics = {}
         for key in results[0]['metrics'].keys():
             metrics[key] = np.zeros((Nruns, n_times, n_agents), 
-                                   dtype=results[0]['metrics'][key].dtype)
+                                    dtype=results[0]['metrics'][key].dtype)
         
         meta_seed = np.zeros(Nruns, dtype=int)
         meta_adaptive = np.zeros(Nruns, dtype=int)
@@ -362,23 +375,24 @@ if __name__ == '__main__':
         response_map = {r: n for n, r in enumerate(responses)}
         response_map["NA"] = 99
         
+        tresh = 0.01
         response = xr.where(
-            (beliefs_beforeEvent < 0) & (beliefs_inEvent < 0) & (beliefs_eval >= 0),
+            (beliefs_beforeEvent < -tresh) & (beliefs_inEvent < -tresh) & (beliefs_eval > tresh),
             response_map["late-compliant"],
             xr.where(
-                (beliefs_beforeEvent < 0) & (beliefs_inEvent < 0) & (beliefs_eval < 0),
+                (beliefs_beforeEvent < -tresh) & (beliefs_inEvent < -tresh) & (beliefs_eval < -tresh),
                 response_map["resistant"],
                 xr.where(
-                    (beliefs_beforeEvent < 0) & (beliefs_inEvent >= 0) & (beliefs_eval < 0),
+                    (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval < -tresh),
                     response_map["resilient"],
                     xr.where(
-                        (beliefs_beforeEvent < 0) & (beliefs_inEvent >= 0) & (beliefs_eval >= 0),
+                        (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval > tresh),
                         response_map["compliant"],
                         xr.where(
-                            (beliefs_beforeEvent >= 0) & (beliefs_eval >= 0),
+                            (beliefs_beforeEvent > tresh) & (beliefs_eval > tresh),
                             response_map["persistent-positive"],
                             xr.where(
-                                (beliefs_beforeEvent >= 0) & (beliefs_eval < 0),
+                                (beliefs_beforeEvent > tresh) & (beliefs_eval < -tresh),
                                 response_map["non-persistent-positive"],
                                 np.nan,
                             ),
@@ -399,6 +413,7 @@ if __name__ == '__main__':
         ds["seed"] = ds["seed"].astype(np.uint8)
         ds["agent_id"] = ds["agent_id"].astype(np.uint8)
         
-        fname = f"processed_data/2026-01-19_modelAdaptiveBN_{condition_string}_results_metricsOnly_SensAna2.ncdf"
+        fname = f"processed_data/2026-01-19_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf"
         ds.to_netcdf(fname)
         print(f"Stored as {fname}")
+# %%
