@@ -1,4 +1,5 @@
 # %%
+import matplotlib as mpl 
 import numpy as np
 import pandas as pd
 from itertools import combinations
@@ -246,6 +247,10 @@ def plot_BN_ax(ag_b, ag_e, ax, intStart=100, intEnd=150, scaleE=1, scaleN=100, h
             )
     ax.axis(False)
     ax.set_facecolor((0, 0, 0, 0))
+    y0,yh= ax.get_ylim()
+    ax.set_ylim(y0*1.1, yh*1.1)
+    x0,xh= ax.get_xlim()
+    ax.set_xlim(x0*1.1, xh*1.1)
     return ax
 
 
@@ -517,147 +522,157 @@ if len(times) > 10:
 T0 = 0
 T = 100
 
-fig, axs = plt.subplot_mosaic([["t", "hist", ".", f"a{T0}", ".", f"a{T}", ], ["t", "hist", ".",  f"b{T0}", ".", f"b{T}"], [".", ".", ".",  f"b{T0}", ".", f"b{T}"]], 
-                              width_ratios=[0.5,0.1, 0.02, 0.2,0.06, 0.2], height_ratios=[1,0.7,0.3], figsize=(16/2.54, 6/2.54))
 # ".", "c0", "c200", ".", "d0", "d200"
 
 ext_pressure_strength = 0
 seed = 1
 window=0
-adaptive = False
-dim = focal_dim
-df = (
-    ds.sel(adaptive=adaptive, seed=seed, s_ext=ext_pressure_strength, belief=dim)[
-        "belief_value"
-    ]
-    .to_dataframe()
-    .reset_index()
-)
-df = df.sort_values(["agent_id", "time"])
-t = T
-final_values = df.loc[df.time == t, ["agent_id", "belief_value"]]
-if window > 0:
-    df["belief_smooth"] = df.groupby("agent_id")["belief_value"].transform(
-        lambda x: x.rolling(window, min_periods=1).mean()
+for adaptive in [False, True]:
+    fig, axs = plt.subplot_mosaic([["t", "hist", ".", f"a{T0}", ".", f"a{T}", ], ["t", "hist", ".",  f"b{T0}", ".", f"b{T}"], [".", ".", ".",  f"b{T0}", ".", f"b{T}"]], 
+                              width_ratios=[0.5,0.1, 0.02, 0.2,0.06, 0.2], height_ratios=[1,0.7,0.3], figsize=(16/2.54, 6/2.54))
+
+    dim = focal_dim
+    df = (
+        ds.sel(adaptive=adaptive, seed=seed, s_ext=ext_pressure_strength, belief=dim)[
+            "belief_value"
+        ]
+        .to_dataframe()
+        .reset_index()
     )
-else:
-    df["belief_smooth"] = df["belief_value"]
-df_pivot = df.pivot(index="time", columns="agent_id", values="belief_smooth")
-
-
-colors=plt.get_cmap("Set1")
-ags = [98, 9] # 9 is great.
-for n, ag_i in enumerate(ags):  # [8, 90, 92]:
-    ag = ds.sel(adaptive=adaptive, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i)[
-        ["belief_value"]
-    ].to_dataframe()
-    ag_edges = ds.sel(
-        adaptive=adaptive, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i 
-    )[["edge_weight"]].to_dataframe()
-
-    ag_b_t = ag.reset_index().loc[ag.reset_index().time == t].set_index("belief")
-    ag_e_t = (
-        ag_edges.reset_index()
-        .loc[ag_edges.reset_index().time == t]
-        .set_index("edge")
-    )
-    final_values = df.loc[df.time == t, ["agent_id", "belief_smooth"]]
-
-
-    df_pivot = df_pivot.loc[df_pivot.index <= T]
-    if n==0:
-        axs["t"].plot([],[],lw=1, alpha=0.4, label="agent", color="grey")
-        leg= axs["t"].legend(loc="center left")
-        df_pivot.plot(ax = axs["t"], lw=0.3, alpha=0.2, legend=False, color="grey")
-        axs["t"].set_xlabel("time")
-        axs["t"].set_ylabel("focal belief")
-        axs["t"].set_clip_on(False)
-        axs["t"].set_xlim(0, T)
-        axs["t"].set_ylim(-1.0, 1.0)
-        axs["t"].set_yticks([-1,0,1])
-        ax_hist = axs["hist"]
-        ax_hist.sharey(axs["t"])
-        y0, y1 = axs["t"].get_ylim()
-        bins = np.linspace(-1.001, 1.001, 21) if len(dims) == 1 else np.linspace(y0, y1, 21)
-        sns.histplot(
-            final_values,
-            y="belief_smooth",
-            bins=bins,
-            orientation="horizontal",
-            color="grey",
-            edgecolor="black",
-            ax=ax_hist,
+    df = df.sort_values(["agent_id", "time"])
+    t = T
+    final_values = df.loc[df.time == t, ["agent_id", "belief_value"]]
+    if window > 0:
+        df["belief_smooth"] = df.groupby("agent_id")["belief_value"].transform(
+            lambda x: x.rolling(window, min_periods=1).mean()
         )
-        ax_hist.set_ylabel("")
-        ax_hist.grid(False)
-        ax_hist.set_clip_on(False)
-        ax_hist.axis("off")
-        # ax_hist.text(
-        #     1,
-        #     0.5,
-        #     f"Histogram\nat $t={t}$",
-        #     ha="right",
-        #     va="center",
-        #     # rotation=270,
-        #     fontsize=smallfs,
-        #     transform=ax_hist.transAxes,
-        # )
-    
-    df_pivot.T.loc[ag_i].plot(ax=axs["t"], lw=3, ls='-', color=colors(n+2), alpha=1, legend=False, clip_on=False)
-    for t in [T0,T]:
+    else:
+        df["belief_smooth"] = df["belief_value"]
+    df_pivot = df.pivot(index="time", columns="agent_id", values="belief_smooth")
+
+
+    colors=plt.get_cmap("Set1")
+    ags = [98, 9] # 9 is great.
+    for n, ag_i in enumerate(ags):  # [8, 90, 92]:
+        ag = ds.sel(adaptive=adaptive, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i)[
+            ["belief_value"]
+        ].to_dataframe()
+        ag_edges = ds.sel(
+            adaptive=adaptive, s_ext=ext_pressure_strength, seed=seed, agent_id=ag_i 
+        )[["edge_weight"]].to_dataframe()
 
         ag_b_t = ag.reset_index().loc[ag.reset_index().time == t].set_index("belief")
         ag_e_t = (
-                ag_edges.reset_index()
-                .loc[ag_edges.reset_index().time == t]
-                .set_index("edge")
+            ag_edges.reset_index()
+            .loc[ag_edges.reset_index().time == t]
+            .set_index("edge")
+        )
+        final_values = df.loc[df.time == t, ["agent_id", "belief_smooth"]]
+
+
+        df_pivot = df_pivot.loc[df_pivot.index <= T]
+        if n==0:
+            axs["t"].plot([],[],lw=1, alpha=0.4, label="agent", color="grey")
+            leg= axs["t"].legend(loc="center left")
+            df_pivot.plot(ax = axs["t"], lw=0.3, alpha=0.2, legend=False, color="grey")
+            axs["t"].set_xlabel("time")
+            axs["t"].set_ylabel("focal belief")
+            axs["t"].set_clip_on(False)
+            axs["t"].set_xlim(0, T)
+            axs["t"].set_ylim(-1.0, 1.0)
+            axs["t"].set_yticks([-1,0,1])
+            ax_hist = axs["hist"]
+            ax_hist.sharey(axs["t"])
+            y0, y1 = axs["t"].get_ylim()
+            bins = np.linspace(-1.001, 1.001, 21) if len(dims) == 1 else np.linspace(y0, y1, 21)
+            sns.histplot(
+                final_values,
+                y="belief_smooth",
+                bins=bins,
+                orientation="horizontal",
+                color="grey",
+                edgecolor="black",
+                ax=ax_hist,
             )
-        ax_net = axs[f"{string.ascii_lowercase[n]}{t}"]
-        plot_BN_ax(
-            ag_b_t,
-            ag_e_t,
-            ax_net,
-            intStart=100,
-            intEnd=150,
-            scaleN=100,
-            scaleE=1.5,
-            highlightfocal=False, 
-            layout="spring" if int(adaptive) and t>0 else "circle",
+            # --- Color bars with coolwarm ---
+            cmap = mpl.cm.coolwarm
+            norm = mpl.colors.Normalize(vmin=y0, vmax=y1)
+
+            for patch in ax_hist.patches:
+                # For horizontal bars, y is the vertical position
+                y = patch.get_y() + patch.get_height() / 2
+                patch.set_facecolor(cmap(norm(y)))
+
+            ax_hist.set_ylabel("")
+            ax_hist.grid(False)
+            ax_hist.set_clip_on(False)
+            ax_hist.axis("off")
+            # ax_hist.text(
+            #     1,
+            #     0.5,
+            #     f"Histogram\nat $t={t}$",
+            #     ha="right",
+            #     va="center",
+            #     # rotation=270,
+            #     fontsize=smallfs,
+            #     transform=ax_hist.transAxes,
+            # )
+        
+        df_pivot.T.loc[ag_i].plot(ax=axs["t"], lw=3, ls='-', color=colors(n+2), alpha=1, legend=False, clip_on=False)
+        for t in [T0,T]:
+
+            ag_b_t = ag.reset_index().loc[ag.reset_index().time == t].set_index("belief")
+            ag_e_t = (
+                    ag_edges.reset_index()
+                    .loc[ag_edges.reset_index().time == t]
+                    .set_index("edge")
+                )
+            ax_net = axs[f"{string.ascii_lowercase[n]}{t}"]
+            plot_BN_ax(
+                ag_b_t,
+                ag_e_t,
+                ax_net,
+                intStart=100,
+                intEnd=150,
+                scaleN=100,
+                scaleE=1.5,
+                highlightfocal=False, 
+                layout="spring" if int(adaptive) and t>0 else "circle",
+            )
+    for l in ["a","b"]:
+        # ConnectionPatch handles the transform internally so no need to get fig.transFigure
+        arrow = patches.ConnectionPatch(
+            (1,0.5),
+            (0,0.5),
+            coordsA=axs[l+f"{T0}"].transAxes,
+            coordsB=axs[l+f"{T}"].transAxes,
+            # Default shrink parameter is 0 so can be omitted
+            color="black",
+            arrowstyle="-|>",  # "normal" arrow
+            mutation_scale=10,  # controls arrow head size
+            linewidth=1,
         )
-for l in ["a","b"]:
-    # ConnectionPatch handles the transform internally so no need to get fig.transFigure
-    arrow = patches.ConnectionPatch(
-        (1,0.5),
-        (0,0.5),
-        coordsA=axs[l+f"{T0}"].transAxes,
-        coordsB=axs[l+f"{T}"].transAxes,
-        # Default shrink parameter is 0 so can be omitted
-        color="black",
-        arrowstyle="-|>",  # "normal" arrow
-        mutation_scale=10,  # controls arrow head size
-        linewidth=1,
-    )
-    axs[l+f"{T0}"].text(1.07,0.02,rf"$t={T0}$", ha="right", va="bottom", transform=axs[l+f"{T0}"].transAxes, fontsize=smallfs, rotation=40)
-    axs[l+f"{T}"].text(1.07,0.02,rf"$t={T}$", ha="right", va="bottom", transform=axs[l+f"{T}"].transAxes, fontsize=smallfs, rotation=40)
-    fig.patches.append(arrow)
+        axs[l+f"{T0}"].text(1.07,0.02,rf"$t={T0}$", ha="right", va="bottom", transform=axs[l+f"{T0}"].transAxes, fontsize=smallfs, rotation=40)
+        axs[l+f"{T}"].text(1.07,0.02,rf"$t={T}$", ha="right", va="bottom", transform=axs[l+f"{T}"].transAxes, fontsize=smallfs, rotation=40)
+        fig.patches.append(arrow)
 
-fig.subplots_adjust(wspace=0.04, hspace=0.04, top=0.98,bottom=0.02, left=0.07, right=0.99)
+    fig.subplots_adjust(wspace=0.05, hspace=0.05, top=0.98,bottom=0.02, left=0.07, right=0.99)
 
-for n, (i, y) in enumerate(zip(ags, [0.93, 0.43])):
-    bboxprops = dict(
-            boxstyle="round",
-            facecolor=colors(n+2),
-            edgecolor=colors(n+2),
-            alpha=0.3,
-        )
-    fig.text(0.77,y, f"agent {i}", fontdict={"fontsize":smallfs, "bbox":bboxprops})
-# fig.set_facecolor("pink")
-import string
-for n, ax in enumerate([axs["t"], axs[f"a{T0}"], axs[f"b{T0}"]]): 
-    ax.text(-0.12 if n==0 else 0, 0.975, string.ascii_uppercase[n], fontsize=12, fontdict={"weight":"bold"},va="top", ha="left", transform=ax.transAxes)
+    for n, (i, y) in enumerate(zip(ags, [0.93, 0.43])):
+        bboxprops = dict(
+                boxstyle="round",
+                facecolor=colors(n+2),
+                edgecolor=colors(n+2),
+                alpha=0.3,
+            )
+        fig.text(0.77,y, f"agent {i}", fontdict={"fontsize":smallfs, "bbox":bboxprops})
+    # fig.set_facecolor("pink")
+    import string
+    for n, ax in enumerate([axs["t"], axs[f"a{T0}"], axs[f"b{T0}"]]): 
+        ax.text(-0.12 if n==0 else 0, 0.975, string.ascii_uppercase[n], fontsize=12, fontdict={"weight":"bold"},va="top", ha="left", transform=ax.transAxes)
 
-print(np.sign(final_values)["belief_smooth"].value_counts())
-plt.savefig(f"figs/2026-01-21_examplesim_{'adaptive' if adaptive else 'fixed'}.png")
+    print(np.sign(final_values)["belief_smooth"].value_counts())
+    plt.savefig(f"figs/2026-01-21_examplesim_{'adaptive' if adaptive else 'fixed'}.png", dpi=600)
 # %%
 
 # %%
