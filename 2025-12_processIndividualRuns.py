@@ -9,10 +9,11 @@ from multiprocessing import Pool, cpu_count
 from functools import partial
 
 # %%
-resultsfolder = "sims/2026-01-16_singleRuns_sensAna2/"
-#resultsfolder = "sims/2025-12-29_singleRuns/"
-
+SA = False
+resultsfolder = "sims/2026-01-21_singleRuns/" if not SA else "sims/2026-01-16_singleRuns_SensAna2/"
+tresh=0.0
 T = 200
+
 params = {
     "n_agents": 100,
     "belief_options": np.linspace(-1, 1, 21),
@@ -33,14 +34,24 @@ params["edge_list"] = list(combinations(params["belief_dimensions"], 2))
 params["edgeNames"] = [f"{i}_{j}" for i, j in params["edge_list"]]
 
 
-pressures = dict(
-    no_pressure=0,
-    weak_focal=1,
-    medium_focal=2,
-    strong_focal=4,
-    xxstrong_focal=8,
-    xxxstrong_focal=16,
-)
+if SA:
+    pressures = dict(
+        # no_pressure=0,
+        weak_focal=1,
+        medium_focal=2,
+        strong_focal=4,
+        # xxstrong_focal=8,
+        # xxxstrong_focal=16,
+    )
+else:
+    pressures = dict(
+        no_pressure=0,
+        weak_focal=1,
+        medium_focal=2,
+        strong_focal=4,
+        xxstrong_focal=8,
+        xxxstrong_focal=16,
+    )
 
 def generate_filename(params, results_folder):
     social_net = f"(p={params['link_prob']})"
@@ -56,12 +67,12 @@ def generate_filename(params, results_folder):
 
 def process_single_run(args):
     """Process a single simulation run - this function will be parallelized"""
-    (pressure_strength, seed, eps, lam, params_dict, resultsfolder, 
+    (pressure_strength, seed, eps, lam, params, resultsfolder, 
      store_beliefAndEdges, focal_dim, belief_dims, edge_names, triangles, 
-     triangles_focal, edge_lookup, triangle_edge_idx) = args
+     triangles_focal) = args
         
     # Reconstruct params
-    params = params_dict.copy()
+    params = params.copy()
     params["external_pressure_strength"] = pressure_strength
     params["seed"] = seed
     params["eps"] = eps
@@ -91,7 +102,9 @@ def process_single_run(args):
         return None
     
     time_points = df.time.unique()
+    time_points = [0, 4.5, 94.5, 144.5,194.5]
     n_times = len(time_points)
+    df = df.loc[df.time.isin(time_points)]
     
     # Initialize result arrays for this run
     result = {
@@ -220,11 +233,10 @@ def process_single_run(args):
     return result
 #%%
 if __name__ == '__main__':
-    seeds = list(range(100))
+    seeds = list(range(100 if SA else 300))
     fixadaptive = [(0.0, 0.0), (1.0, 0.005)]
     store_beliefAndEdges = False
 
-    SA = True
     if SA:
         param_combis = [
             [omega0, 1.0 / 3.0, beta, link_prob]
@@ -246,11 +258,6 @@ if __name__ == '__main__':
     edge_names = params["edgeNames"]
     triangles = list(combinations(belief_dims, 3))
     triangles_focal = [t for t in combinations(belief_dims, 3) if params["focal_dim"] in t]
-    edge_lookup = {edge: idx for idx, edge in enumerate(edge_names)}
-    triangle_edge_idx = [
-        (edge_lookup[f"{a}_{b}"], edge_lookup[f"{b}_{c}"], edge_lookup[f"{a}_{c}"])
-        for a, b, c in triangles
-    ]
 
     for initial_w, rho, beta, link_prob in param_combis:
         params["initial_w"] = initial_w
@@ -268,11 +275,11 @@ if __name__ == '__main__':
                     args_list.append((
                         pressure_strength, seed, eps, lam, params, resultsfolder,
                         store_beliefAndEdges, focal_dim, belief_dims, edge_names,
-                        triangles, triangles_focal, edge_lookup, triangle_edge_idx
+                        triangles, triangles_focal
                     ))
         
         # Parallel processing
-        n_processes = cpu_count() - 1  # Leave one core free
+        n_processes = cpu_count() - 3  # Leave one core free
         print(f"Using {n_processes} processes to process {len(args_list)} runs")
         
         with Pool(processes=n_processes) as pool:
@@ -369,38 +376,56 @@ if __name__ == '__main__':
         beliefs_eval = ds.focal_belief.sel(time=eval_time)
         
         responses = [
-            "persistent-positive", "non-persistent-positive", "compliant",
-            "late-compliant", "resilient", "resistant"
+            "persistent-positive", 
+            "non-persistent-positive", 
+            "compliant",
+            "late-compliant", 
+            "resilient", 
+            "resistant"
         ]
         response_map = {r: n for n, r in enumerate(responses)}
         response_map["NA"] = 99
+        #response_map["unknown"] =    97
         
-        tresh = 0.01
-        response = xr.where(
-            (beliefs_beforeEvent < -tresh) & (beliefs_inEvent < -tresh) & (beliefs_eval > tresh),
-            response_map["late-compliant"],
-            xr.where(
-                (beliefs_beforeEvent < -tresh) & (beliefs_inEvent < -tresh) & (beliefs_eval < -tresh),
-                response_map["resistant"],
-                xr.where(
-                    (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval < -tresh),
-                    response_map["resilient"],
-                    xr.where(
-                        (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval > tresh),
-                        response_map["compliant"],
-                        xr.where(
-                            (beliefs_beforeEvent > tresh) & (beliefs_eval > tresh),
-                            response_map["persistent-positive"],
-                            xr.where(
-                                (beliefs_beforeEvent > tresh) & (beliefs_eval < -tresh),
-                                response_map["non-persistent-positive"],
-                                np.nan,
-                            ),
-                        ),
-                    ),
-                ),
-            ),
+        conditions = [
+            (beliefs_beforeEvent > tresh) & (beliefs_inEvent > tresh) & (beliefs_eval > tresh), # persistent-positive
+            (beliefs_beforeEvent > tresh) & (beliefs_inEvent > tresh) & (beliefs_eval < -tresh), # non-persistent-positive
+            (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval > tresh), # compliant
+            (beliefs_beforeEvent < -tresh) & (beliefs_inEvent < -tresh) & (beliefs_eval > tresh), # late-compliant
+            (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval < -tresh),  # resilient
+            (beliefs_beforeEvent < -tresh) & (beliefs_inEvent < -tresh) & (beliefs_eval < -tresh),  # resistant
+            ]
+        choices = [response_map[r] for r in responses]
+        response = xr.DataArray(
+            np.select(conditions, choices, default=99),
+            dims=beliefs_beforeEvent.dims,
+            coords=beliefs_beforeEvent.coords
         )
+        # response = xr.where(
+        #     ,
+        #     response_map["late-compliant"],
+        #     xr.where(
+        #         (beliefs_beforeEvent < -tresh) & (beliefs_inEvent < -tresh) & (beliefs_eval < -tresh),
+        #         response_map["resistant"],
+        #         xr.where(
+        #             (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval < -tresh),
+        #             response_map["resilient"],
+        #             xr.where(
+        #                 (beliefs_beforeEvent < -tresh) & (beliefs_inEvent > tresh) & (beliefs_eval > tresh),
+        #                 response_map["compliant"],
+        #                 xr.where(
+        #                     (beliefs_beforeEvent > tresh) & (beliefs_eval > tresh),
+        #                     response_map["persistent-positive"],
+        #                     xr.where(
+        #                         (beliefs_beforeEvent > tresh) & (beliefs_eval < -tresh),
+        #                         response_map["non-persistent-positive"],
+        #                         np.nan,
+        #                     ),
+        #                 ),
+        #             ),
+        #         ),
+        #     ),
+        # )
         
         ds.attrs["evaluation_time_for_response"] = eval_time
         ds["response_type"] = response.astype(np.uint8)
@@ -410,10 +435,10 @@ if __name__ == '__main__':
         # Save
         ds["s_ext"] = ds["s_ext"].astype(np.uint8)
         ds["time"] = ds["time"].astype(np.float32)
-        ds["seed"] = ds["seed"].astype(np.uint8)
+        ds["seed"] = ds["seed"].astype(np.uint16)
         ds["agent_id"] = ds["agent_id"].astype(np.uint8)
         
-        fname = f"processed_data/2026-01-19_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf"
+        fname = f"processed_data/2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf"
         ds.to_netcdf(fname)
         print(f"Stored as {fname}")
 # %%

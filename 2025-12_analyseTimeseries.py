@@ -37,6 +37,7 @@ resultsfolder = "2025-12-29/"
 
 ds = xr.load_dataset("processed_data/2025-12-29_modelAdaptiveBN_baselineConfig_results_detailed_withBeliefsAndEdges.ncdf", engine="netcdf4")
 
+
 #################################
 #####  #################################
 #####  #################################

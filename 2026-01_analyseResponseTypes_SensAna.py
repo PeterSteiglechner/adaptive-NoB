@@ -22,14 +22,14 @@ plt.rcParams.update({"ytick.labelsize": smallfs})
 
 
 # %%
-tresh=0.01
+tresh=0.33
 rho=1/3
 link_prob = 0.1
 omega0 = 0.1
 beta=3.0
 condition_string =f"omega{omega0}_rho{rho:.2f}_beta{beta}_p{link_prob}"
-ds = xr.load_dataset(f"processed_data/"
-                     f"2026-01-19_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
+# ds = xr.load_dataset(f"processed_data/"
+#                      f"2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
 
 # %%
 belief_dimensions = list(range(ds.attrs["M"]))
@@ -85,7 +85,7 @@ for p in  [0.05, 0.1, 0.2, 0.5]:
                 condition_string =f"omega{omega0}_rho{rho:.2f}_beta{beta}_p{p}"
                 ds = xr.load_dataset(f"processed_data/"
                         #+2026-01-19_modelAdaptiveBN_sensitivityAnalyses_processedData_metricsOnly/
-                        f"2026-01-19_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{0.01}.ncdf", engine="netcdf4")
+                        f"2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
                 resp = ds.response_type.sel(adaptive=adaptive, s_ext=s_ext)
                 focalBeliefStd = ds.sel(adaptive=adaptive, s_ext=s_ext, time=94.5).focal_belief.std(dim="agent_id").mean(dim="seed")
                 focalBeliefStdPost = ds.sel(adaptive=adaptive, s_ext=s_ext, time=194.5).focal_belief.std(dim="agent_id").mean(dim="seed")
@@ -154,9 +154,9 @@ for p in  [0.05, 0.1, 0.2, 0.5]:
             for patch in ax.patches[-len(tmp)*len(tmp.columns):]:
                 patch.set_x(patch.get_x() + off - width/2)
         if ax==axs[0,-1]:
-            ax.text( ns+0.1,1.2, "focal std", fontsize=smallfs-1, va="bottom", ha="center")
-            ax.annotate(r"before", (ns+off,std), (ns-0.25,1.05), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3"), bbox=dict(pad=0.0,fc='none', ec='none', color=colBefore), color=colBefore)
-            ax.annotate(r"after", (ns+off,stdPost), (ns+0.3,1.05), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.15", color=colAfter), bbox=dict(pad=0.0,fc='none', ec='none'), color=colAfter)
+            ax.text( ns+0.07,1.23, "focal std", fontsize=smallfs-1, va="bottom", ha="center")
+            ax.annotate(r"before", (ns+off,std), (ns-0.25,1.1), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3"), bbox=dict(pad=0.0,fc='none', ec='none', color=colBefore), color=colBefore)
+            ax.annotate(r"after", (ns+off,stdPost), (ns+0.3,1.1), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3", color=colAfter), bbox=dict(pad=0.0,fc='none', ec='none'), color=colAfter)
         ax.set_xlim(-0.5, 2.5)
         ax.set_ylim(0,1)
         ax.set_yticks([])
@@ -172,7 +172,7 @@ for p in  [0.05, 0.1, 0.2, 0.5]:
             ax.set_ylabel(fr"$\omega_0={omega0}$", fontsize=smallfs, va="center")
     fig.suptitle(rf"link probability $p={p}$", fontsize=smallfs, x=0.57)
     fig.subplots_adjust(left=0.08, right=0.98, hspace=0.45, bottom=0.11, wspace=0.1)
-    plt.savefig(f"figs/SA2_responseTypes_p{p}.png", dpi=600)
+    plt.savefig(f"figs/SA2_responseTypes_p{p}_tresh{tresh}.png", dpi=600)
 #%%
 
 # ----------------------------------------------
@@ -209,4 +209,17 @@ for os, p in zip([k*width+width/2 for k in range(-2,2)], ps):
 ax.text(0.15, 0.8, r"$\mathbf{p}$", ha="center", rotation=0, fontsize=bigfs, weight="bold")
 fig.subplots_adjust(bottom=0.17, right=0.99, top=0.9, left=0.09)
 plt.savefig("figs/2026-01-21_SA_BNOmega_over_beta.png", dpi=600)
+# %%
+
+# ----------------------------------------------
+# -------    TEST
+# ----------------------------------------------
+
+condition_string =f"omega{0.1}_rho{rho:.2f}_beta{1.5}_p{0.1}"
+ds = xr.load_dataset(f"processed_data/"
+                     f"2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
+# %%
+for t in ds.time:
+    sns.histplot(ds.sel(s_ext=1, adaptive=0,time=t, seed=0).to_dataframe()["focal_belief"], label=t.values)
+plt.legend(title="t")
 # %%
