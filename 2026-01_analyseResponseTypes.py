@@ -81,9 +81,9 @@ ds.sel(adaptive=adaptive, s_ext=0, time=94.5)[
 ext_pressure_strength = 4
 for examplesimadaptive in [False, True]:
     if examplesimadaptive:
-        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps1.0-m1_lam0.005_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{ext_pressure_strength}_seed98_detailed.csv")
+        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps1.0-m1_lam0.005_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{ext_pressure_strength}_seed98_detailed.csv")
     else:
-        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps0.0-m1_lam0.0_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{ext_pressure_strength}_seed98_detailed.csv")
+        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps0.0-m1_lam0.0_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{ext_pressure_strength}_seed98_detailed.csv")
     examplesim.loc[examplesim.time.isin([99,149,199])].pivot_table(values="0", index="time", columns="agent_id")
     T = 200
     dim = "0"
@@ -115,23 +115,6 @@ for examplesimadaptive in [False, True]:
     axs[3].sharex(axs[2])
     for ax, adaptive in zip(axs[2:], [False, True]):
         subset = df.loc[df.adaptive == adaptive]
-        # grouped = (
-        #     subset.groupby(["s_ext_log2", "response"])["normalized_count"].sum().reset_index()
-        # )
-        # pivoted = grouped.pivot(
-        #     index="s_ext_log2",
-        #     columns="response",
-        #     values="normalized_count",
-        # ).fillna(0)[responses]
-        # ax = pivoted.plot(
-        #     kind="bar",
-        #     stacked=True,
-        #     color=[cmap[r] for r in pivoted.columns],
-        #     alpha=0.8,
-        #     width=0.7,
-        #     legend=False,
-        #     ax=ax,
-        # )
         sns.stripplot(subset, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=1, alpha=0.2, dodge=True)
         avgs = subset.groupby(["response", "s_ext_log2"])["normalized_count"].median().reset_index()
         sns.stripplot(avgs, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=3, alpha=0.8, dodge=True, marker="s")
@@ -207,6 +190,8 @@ for examplesimadaptive in [False, True]:
     df_pivot = df_pivot.loc[df_pivot.index <= t]
     df_pivot.plot(ax=ax_main, lw=0.5, alpha=0.4, legend=False, color="grey", label="_")
     # for i, name in zip([latecompliant, nonpersistentpos, resistant, resilient, compliant, persistentpositive],["late-compliant", "non-persistent-positive","resistant", "resilient", "compliant", "persistent-positive"]):
+    latecompliant=np.nan
+    nonpersistentpos= np.nan
     for i, name in zip([resistant, resilient, compliant, persistentpositive],["resistant", "resilient", "compliant", "persistent-positive"]):
         if examplesimadaptive or name=="compliant":
             df_pivot.T.loc[i].plot(ax=ax_main, lw=2 if i not in [latecompliant, nonpersistentpos] else 1, ls="-" if i not in [latecompliant, nonpersistentpos] else "--", color=cmap[name], alpha=0.8, legend=False, label="_", )
@@ -281,12 +266,12 @@ for examplesimadaptive in [False, True]:
 # ----------------------------------------------
 
 fig, axs = plt.subplots(2,3, sharex=True, sharey=True, figsize=(16/2.54, 9/2.54))
-examplesimadaptive = False
+examplesimadaptive = True
 for ax, sext in zip(axs.flatten(), [0,1,2,4,8,16]):
     if examplesimadaptive:
-        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps1.0-m1_lam0.005_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
+        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps1.0-m1_lam0.005_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
     else:
-        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps0.0-m1_lam0.0_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
+        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps0.0-m1_lam0.0_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
     examplesim.loc[examplesim.time.isin([99,149,199])].pivot_table(values="0", index="time", columns="agent_id")
     T = 200
     dim = "0"
@@ -410,7 +395,7 @@ metric2title = dict(
     external_energy = r"$D_{ext}$",    
     energy = r"$D_{tot}$",
 )
-
+BNmetrics = ["nr_balanced_triangles_tot", "nr_balanced_triangles_focal", "bn_abs_meanedge_tot", "bn_abs_meanedge_focal","bn_avg_weighted_clustering"]
 
 all_metrics = metric2title.keys()
 
@@ -421,7 +406,7 @@ print("".join(["#"]*50)+f"\n time = {ttt}\n"+"".join(["#"]*50)+f"\n s_ext = {s_e
 print(" & ".join(["", "compliant", "resilient", "resistant"]))
 ds["energy"] = ds["personalBN_energy"] + ds["social_energy"] + ds["external_energy"]
 ds["personalBN_nonfocal_energy"] = ds["personalBN_energy"] - ds["personalBN_focal_energy"] + ds["external_energy"]
-for metric in all_metrics:
+for metric in BNmetrics+["n_neighbours"]:
     # print("".join(["#"]*3)+f" {metric}")
 
     a = (
@@ -445,15 +430,35 @@ sum = np.sum([a.loc[a.response_type==r, "count"].values[0] for r in ["compliant"
 for r in ["compliant", "resilient", "resistant"]:#a.response_type.unique():
     print(f"${(a.loc[a.response_type==r, "count"].values[0]/sum)*100:.1f}"+ "\\,\\%$", end=" & ")
 print("\\\\")
+for _ in range(5):
+    print("")
 
+for metric in BNmetrics:
+    aaa = []
+    print(f"{metric2title[metric]} & ", end="")
+    for t in [94.5, 194.5]:
+        a = (
+                ds
+                .sel(adaptive=1, time=t, s_ext=s_ext)[[metric, "response_type"]]
+                .to_dataframe()
+                .reset_index()
+                .groupby("response_type")[metric]
+                .agg(mean="mean", sd="std", count="count")
+                .rename(columns={"mean":metric})
+                .reset_index()
+            )
+        a["response_type"] = a["response_type"].map(response_map_inv)
+        aaa.append(a)
+    
+    for r in ["compliant", "resilient", "resistant"]:
+        for a in aaa:
+            print(f"${a.loc[a.response_type==r, metric].values[0]:.2f} \pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$", end=" & ")        
+    print("\\\\")
 
 # %%
 # ----------------------------------------------
 # -------    PLOT METRICS
 # ----------------------------------------------
-ds.sel(time=94.5).focal_belief.mean()
-
-#%%
 plot_characteristics = False
 if plot_characteristics:
     responsesNames = ['persistent-positive',
@@ -577,49 +582,54 @@ if further_plots:
 # ----------------------------------------------
 # -------    PLOT FOCAL BELIEFS OVER TIME
 # ----------------------------------------------
-further_plots = False
+further_plots = True
 if further_plots:
     metric = "focal_belief"
-    fig, axs = plt.subplots(2,3, sharex=True, sharey=True)
-    for ax, s in zip(axs.flatten(), [0,1,2,4,8,16]):
-        a = (
-                ds
-                .sel(adaptive=1, time=[4.5,94.5,144.5,194.5,294.5], s_ext=s)[[metric, "response_type"]]
-                .to_dataframe()
-                .reset_index()
-                .groupby(["response_type", "time"])[metric]
-                .agg(mean="mean", sd="std", count="count")
-                .rename(columns={"mean":metric})
-                .reset_index()
-        )
-        a["response_type"] = a["response_type"].map(response_map_inv)
-        sns.lineplot(a, ax=ax, x="time", y=metric, hue="response_type", palette=cmap, marker="o", legend=False, errorbar=None)
-        for (_, g), line in zip(a.groupby("response_type"), ax.lines):
-            ax.errorbar(
-                g["time"],
-                g[metric],
-                yerr=g["sd"],
-                fmt="none",
-                capsize=3,
-                color=cmap[g.response_type.iloc[0]],
-                linewidth=1
+    times = [4.5,94.5,144.5,194.5]
+    for currseeds, ts in zip([ds.seed, range(100)], [times, times+[294.5]]):
+        dss = ds if ts[-1] < 200 else xr.load_dataset(f"processed_data/2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{0.0}_seed0-100_T300.ncdf", engine="netcdf4")
+
+        fig, axs = plt.subplots(2,3, sharex=True, sharey=True)
+        for ax, s in zip(axs.flatten(), [0,1,2,4,8,16]):
+            a = (
+                    dss
+                    .sel(adaptive=1, seed=currseeds, s_ext=s)[[metric, "response_type"]]
+                    .sel(time=ts)
+                    .to_dataframe()
+                    .reset_index()
+                    .groupby(["response_type", "time"])[metric]
+                    .agg(mean="mean", sd="std", count="count")
+                    .rename(columns={"mean":metric})
+                    .reset_index()
             )
-        ax.set_title(fr"$s={s}$")
-        ax.set_ylabel("mean focal belief")
-        # if s==1:
-        #     leg = ax.get_legend()
-        #     leg.set_title("")
-        #     leg.set_loc("lower right")
+            a["response_type"] = a["response_type"].map(response_map_inv)
+            sns.lineplot(a, ax=ax, x="time", y=metric, hue="response_type", palette=cmap, marker="o", legend=False, errorbar=None)
+            for (_, g), line in zip(a.groupby("response_type"), ax.lines):
+                ax.errorbar(
+                    g["time"],
+                    g[metric],
+                    yerr=g["sd"],
+                    fmt="none",
+                    capsize=3,
+                    color=cmap[g.response_type.iloc[0]],
+                    linewidth=1
+                )
+            ax.set_title(fr"$s={s}$")
+            ax.set_ylabel("mean focal belief")
+            # if s==1:
+            #     leg = ax.get_legend()
+            #     leg.set_title("")
+            #     leg.set_loc("lower right")
 
-        ax.set_ylim(-1.15,1.15)
-    yl,yh = ax.get_ylim()
-    for ax, s in zip(axs.flatten(),[0,1,2,4,8,16]):
-        if s>0:
-            ax.fill_between([100,150], [yl,yl], [yh,yh], color="red", alpha=(1+np.log2(s))/5*0.4, zorder=-1, lw=0)
+            ax.set_ylim(-1.15,1.15)
+        yl,yh = ax.get_ylim()
+        for ax, s in zip(axs.flatten(),[0,1,2,4,8,16]):
+            if s>0:
+                ax.fill_between([100,150], [yl,yl], [yh,yh], color="red", alpha=(1+np.log2(s))/5*0.4, zorder=-1, lw=0)
 
-        ax.set_ylim(-1.15,1.15)
-    fig.subplots_adjust(left=0.07, top=0.93, right=0.98, bottom=0.1)
-    plt.savefig( f"figs/focalBeliefsOverTime_{condition_string}.png")
+            ax.set_ylim(-1.15,1.15)
+        fig.subplots_adjust(left=0.07, top=0.93, right=0.98, bottom=0.1)
+        plt.savefig( f"figs/focalBeliefsOverTime_{condition_string}{'_T300' if ts[-1]>200 else ''}.png")
 
 # %%
 # ----------------------------------------------
