@@ -589,7 +589,7 @@ if further_plots:
     for currseeds, ts in zip([ds.seed, range(100)], [times, times+[294.5]]):
         dss = ds if ts[-1] < 200 else xr.load_dataset(f"processed_data/2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{0.0}_seed0-100_T300.ncdf", engine="netcdf4")
 
-        fig, axs = plt.subplots(2,3, sharex=True, sharey=True)
+        fig, axs = plt.subplots(2,3, sharex=True, sharey=True, figsize=(16/2.54, 9/2.54))
         for ax, s in zip(axs.flatten(), [0,1,2,4,8,16]):
             a = (
                     dss
@@ -628,7 +628,7 @@ if further_plots:
                 ax.fill_between([100,150], [yl,yl], [yh,yh], color="red", alpha=(1+np.log2(s))/5*0.4, zorder=-1, lw=0)
 
             ax.set_ylim(-1.15,1.15)
-        fig.subplots_adjust(left=0.07, top=0.93, right=0.98, bottom=0.1)
+        fig.subplots_adjust(left=0.09, top=0.93, right=0.98, bottom=0.13)
         plt.savefig( f"figs/focalBeliefsOverTime_{condition_string}{'_T300' if ts[-1]>200 else ''}.png")
 
 # %%

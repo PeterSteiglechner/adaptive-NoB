@@ -22,7 +22,7 @@ plt.rcParams.update({"ytick.labelsize": smallfs})
 
 
 # %%
-tresh=0.33
+tresh=0.0
 rho=1/3
 link_prob = 0.1
 omega0 = 0.1
