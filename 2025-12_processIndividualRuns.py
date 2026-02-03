@@ -10,7 +10,9 @@ from functools import partial
 
 # %%
 SA = False
+SAOFAT = True
 resultsfolder = "sims/2026-01-21_singleRuns/" if not SA else "sims/2026-01-16_singleRuns_SensAna2/"
+resultsfolder = "sims/2026-01-29_singleRuns/"
 tresh=0.0
 T = 200
 
@@ -52,6 +54,8 @@ else:
         xxstrong_focal=8,
         xxxstrong_focal=16,
     )
+if SAOFAT:
+    pressures={"strong_focal":4}
 
 def generate_filename(params, results_folder):
     social_net = f"(p={params['link_prob']})"
@@ -233,7 +237,7 @@ def process_single_run(args):
     return result
 #%%
 if __name__ == '__main__':
-    seeds = list(range(100 if SA else 300))
+    seeds = list(range(100 if SA or SAOFAT else 300))
     fixadaptive = [(0.0, 0.0), (1.0, 0.005)]
     store_beliefAndEdges = False
 
@@ -252,6 +256,23 @@ if __name__ == '__main__':
             for beta in [3.0]
             for link_prob in [0.1]
         ]
+    if SAOFAT:
+        param_combis= [
+            [omega0, 1.0/3.0, beta, link_prob]
+            for omega0, beta, link_prob in [
+                [0.2, 0.5, 0.1],
+                [0.2, 10.0, 0.1],
+                [0.05, 3.0, 0.1],
+                [0.3, 3.0, 0.1],
+                [0.6, 3.0, 0.1],
+                [1.0, 3.0, 0.1],
+                [0.2, 3.0, 0.0],
+                [0.2, 3.0, 0.3],
+                [0.2, 3.0, 0.4],
+            ]
+        ]
+        pressures = {n:p for n,p in pressures.items() if p in [4]}
+
 
     focal_dim = params["focal_dim"]
     belief_dims = params["belief_dimensions"]
@@ -264,7 +285,7 @@ if __name__ == '__main__':
         params["rho"] = rho
         params["beta"] = beta
         params["link_prob"] = link_prob
-        condition_string = f"omega{initial_w}_rho{rho:.2f}_beta{beta}_p{link_prob}" if SA else "baselineConfig"
+        condition_string = f"omega{initial_w}_rho{rho:.2f}_beta{beta}_p{link_prob}" if SA or SAOFAT else "baselineConfig"
         print(f"\nProcessing: {condition_string}")
         
         # Build arguments for all runs

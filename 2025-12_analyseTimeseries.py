@@ -74,7 +74,7 @@ svals = [0, 16]
 cmap = dict(
     zip(
             responses+["NA"],
-            ["#4DAF4A", "#A6D854", "#469FDB", "#B8DFF3", "#7A0177", "#E41A1C",  "#666666"],
+            ["#4CAF50", "#AED581", "#2196F3", "#90CAF9", "#9C27B0", "#F44336", "#9E9E9E"],
         )
     )
 # %%
@@ -99,7 +99,8 @@ def plot_timeseries(df_pivot, final_values, T, t, window, dim, ext_pressure_stre
             if dim == focal_dim
             else (f"belief ${dim}$" if len(dim) == 1 else f"belief relation ${dim}$")
         ),
-        fontsize=bigfs,
+        fontsize=bigfs,        
+        va="top",
     )
     if window != 0:
         ax_main.text(
@@ -283,6 +284,7 @@ def plot_timeseries_ag(
             else (f"belief ${dim}$" if len(dim) == 1 else f"belief relation ${dim}$")
         ),
         fontsize=bigfs,
+        va="top",
     )
     # if window != 0:
     #     ax_main.text(
@@ -573,11 +575,12 @@ for adaptive in [False, True]:
 
         df_pivot = df_pivot.loc[df_pivot.index <= T]
         if n==0:
-            axs["t"].plot([],[],lw=1, alpha=0.4, label="agent", color="grey")
+            axs["t"].plot([],[],lw=1, alpha=1, label="single\nagent", color=(0.7,0.7,0.7))
             leg= axs["t"].legend(loc="center left")
-            df_pivot.plot(ax = axs["t"], lw=0.3, alpha=0.2, legend=False, color="grey")
+            for aaa in df_pivot.columns:
+                df_pivot[aaa].plot(ax = axs["t"], lw=0.4, alpha=0.2, legend=False, color=(0.8-0.5*aaa/100, 0.8-0.5*aaa/100, 0.8-0.5*aaa/100, 1))
             axs["t"].set_xlabel("time")
-            axs["t"].set_ylabel("focal belief")
+            axs["t"].set_ylabel("focal belief", va="center")
             axs["t"].set_clip_on(False)
             axs["t"].set_xlim(0, T)
             axs["t"].set_ylim(-1.0, 1.0)
@@ -664,9 +667,9 @@ for adaptive in [False, True]:
                 boxstyle="round",
                 facecolor=colors(n+2),
                 edgecolor=colors(n+2),
-                alpha=0.3,
+                alpha=1,
             )
-        fig.text(0.77,y, f"agent {i}", fontdict={"fontsize":smallfs, "bbox":bboxprops})
+        fig.text(0.77,y, f"agent {i}", fontdict={"fontsize":smallfs, "bbox":bboxprops, "color":"white"})
     # fig.set_facecolor("pink")
     import string
     for n, ax in enumerate([axs["t"], axs[f"a{T0}"], axs[f"b{T0}"]]): 

@@ -503,7 +503,7 @@ def run_one(
 # Main execution
 if __name__ == "__main__":
     # Base parameters
-    T = 300
+    T = 200
     base_params = {
         "n_agents": 100,
         "belief_options": np.linspace(-1, 1, 21),
@@ -524,7 +524,7 @@ if __name__ == "__main__":
         "store_times": (
             [(0, 0), (0, 9), (90, 99) ]
             # + [(i, i) for i in range(90, 100)]
-            + [(140, 149), (170, 179), (180, 189), (190, 199)]
+            + [(140, 149), (190, 199)]
         ),
         "external_event_times": list(range(100, 150)),
         "external_pressure": 0,
@@ -546,25 +546,40 @@ if __name__ == "__main__":
     lam = 0.005  # 1 higher
     beta = 3.0  # 1 lower, 1 higher
     link_prob = 10 / 100
-    ext_strengths = [0]  # [0,1,2,4,8,16]  # 6 external influences
+    ext_strengths = [4]  # [0,1,2,4,8,16]  # 6 external influences
 
-    # SAparams = [
-    #     [eps_val, 0.0, lam_val, omega0, rho_val, beta, link_prob, s_ext]
-    #     for eps_val, lam_val in [(0.0, 0.0), (eps, lam)]
-    #     for omega0 in [0.1, 0.2, 0.4]
-    #     for beta in [1.5, 2.25, 3.0, 4.5, 6.0]
-    #     for link_prob in [0.05, 0.1, 0.2, 0.5, 1]
-    #     for s_ext in ext_strengths
-    # ]
+    SAparams = [
+        [eps_val, 0.0, lam_val, omega0, rho_val, beta, link_prob, s_ext]
+        for eps_val, lam_val in [(0.0, 0.0), (eps, lam)]
+        for omega0 in [0.1, 0.2, 0.4]
+        for beta in [1.5, 2.25, 3.0, 4.5, 6.0]
+        for link_prob in [0.05, 0.1, 0.2, 0.5, 1]
+        for s_ext in ext_strengths
+    ]
+    SAparamsOFAT = [
+        [eps_val, 0.0, lam_val, omega0, rho_val, beta, link_prob, 4]
+        for eps_val, lam_val in [(0.0, 0.0), (eps, lam)]
+        for omega0, beta, link_prob in [
+            [0.2, 0.5, 0.1],
+            [0.2, 10, 0.1],
+            [0.05, 3.0, 0.1],
+            [0.3, 3.0, 0.1],
+            [0.6, 3.0, 0.1],
+            [1.0, 3.0, 0.1],
+            [0.2, 3.0, 0.0],
+            [0.2, 3.0, 0.3],
+            [0.2, 3.0, 0.4],
+        ]
+    ]
     param_combis = [
         [eps_val, 0.0, lam_val, initial_w, rho_val, beta, link_prob, s_ext] 
         for eps_val, lam_val in [(0.0, 0.0), (eps, lam)]
         for s_ext in ext_strengths
     ]
-    param_combis = param_combis
+    param_combis = SAparamsOFAT
 
     # Results folder
-    results_folder = "sims/2026-01-21_singleRuns/"
+    results_folder = "sims/2026-01-29_singleRuns/"
     if not os.path.isdir(results_folder.split("/")[0]):
         os.mkdir(results_folder.split("/")[0])
     if not os.path.isdir(results_folder):
@@ -599,7 +614,7 @@ if __name__ == "__main__":
     # print(s.getvalue())
 
     # Run in parallel
-    seeds = np.arange(200, 300)
+    seeds = np.arange(0, 100)
     # base_params["track_times"] = np.arange(0, 301)
     # base_params["store_times"] = [(i, i) for i in np.arange(0, 301)]
     param_combis_withSeed = [

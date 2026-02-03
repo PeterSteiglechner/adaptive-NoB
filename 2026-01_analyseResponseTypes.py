@@ -53,7 +53,7 @@ response_map_inv = {val: key for key, val in response_map.items()}
 cmap = dict(
     zip(
             responses+["NA"],
-            ["#4DAF4A", "#A6D854", "#469FDB", "#B8DFF3", "#7A0177", "#E41A1C",  "#666666"],
+            ["#4CAF50", "#AED581", "#2196F3", "#90CAF9", "#9C27B0", "#F44336", "#9E9E9E"],
         )
     )
 
@@ -115,10 +115,11 @@ for examplesimadaptive in [False, True]:
     axs[3].sharex(axs[2])
     for ax, adaptive in zip(axs[2:], [False, True]):
         subset = df.loc[df.adaptive == adaptive]
-        sns.stripplot(subset, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=1, alpha=0.2, dodge=True)
+        sns.stripplot(subset, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=1.5, alpha=0.3, dodge=True)
         avgs = subset.groupby(["response", "s_ext_log2"])["normalized_count"].median().reset_index()
-        sns.stripplot(avgs, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=3, alpha=0.8, dodge=True, marker="s")
-        
+        sns.stripplot(avgs, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=5, alpha=0.8, dodge=True, marker="s")
+        for i in [0.5,2.5]:
+            ax.fill_between([i,i+1], [0,0],[1,1], color="gainsboro", zorder=-1)
         ax.set_ylabel("proportion in one simulation", fontsize=bigfs)
         ax.set_title("adaptive" if adaptive else "fixed", fontsize=bigfs)
         ax.set_xticks(ax.get_xticks())
@@ -237,11 +238,7 @@ for examplesimadaptive in [False, True]:
                 x,
                 y,
                 type,
-                color=(
-                    "white"
-                    if type in ["resilient", "resistant"]
-                    else "k"
-                ),
+                color="white",
                 va="center",
                 ha="left",
                 bbox=bboxprops,
@@ -265,119 +262,134 @@ for examplesimadaptive in [False, True]:
 # -------    OVER S_EXT EXAMPLE RUN
 # ----------------------------------------------
 
-fig, axs = plt.subplots(2,3, sharex=True, sharey=True, figsize=(16/2.54, 9/2.54))
-examplesimadaptive = True
-for ax, sext in zip(axs.flatten(), [0,1,2,4,8,16]):
-    if examplesimadaptive:
-        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps1.0-m1_lam0.005_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
-    else:
-        examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps0.0-m1_lam0.0_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
-    examplesim.loc[examplesim.time.isin([99,149,199])].pivot_table(values="0", index="time", columns="agent_id")
-    T = 200
-    dim = "0"
-    adaptive = True
-    seed = 0  # np.random.randint(10)
-    window = 10
-    df = examplesim[["0", "agent_id", "time"]]
-    df = df.sort_values(["agent_id", "time"])
-    t = 200
-    final_values = df.loc[df.time == t, ["agent_id", dim]]
-    if window > 0:
-        df["belief_smooth"] = df.groupby("agent_id")[dim].transform(
-            lambda x: x.rolling(window, min_periods=1).mean()
-        )
-    else:
-        df["belief_smooth"] = df[dim]
-    df_pivot = df.pivot(index="time", columns="agent_id", values="belief_smooth")
-
-    bboxprops = dict(
-            boxstyle="round",
-            facecolor=cmap["late-compliant"],
-            edgecolor='white',
-            alpha=0.8,
-        )
-    ap = dict(arrowstyle="-", connectionstyle="arc3,rad=0", color="black", shrinkA=0, shrinkB=0,)
-
-    ax_main = ax
-    # for seed=98:
-    resistant = 50 # resistant
-    persistentpositive = 5
-    resilient = 55
-    compliant = 8
-    ax_main.plot([],[],lw=0.7, alpha=0.4, label="agent", color="grey")
-    leg= ax_main.legend(loc="center left")
-    df_pivot = df_pivot.loc[df_pivot.index <= t]
-    df_pivot.plot(ax=ax_main, lw=0.5, alpha=0.4, legend=False, color="grey", label="_")
-    for i, name in zip([resistant, resilient, compliant, persistentpositive],["resistant", "resilient", "compliant", "persistent-positive"]):
-        if examplesimadaptive or name=="compliant":
-            df_pivot.T.loc[i].plot(ax=ax_main, lw=2 if i not in [latecompliant, nonpersistentpos] else 1, ls="-" if i not in [latecompliant, nonpersistentpos] else "--", color=cmap[name], alpha=0.8, legend=False, label="_", )
-    ax_main.set_xlabel("time", fontsize=bigfs)
-    ax_main.set_ylabel("focal belief", fontsize=bigfs, va="top")
-    ax_main.set_xlim(0, T)
-    if len(dim) == 1:
-        ax_main.set_ylim(-1, 1)
-    ax_main.set_yticks([-1,0,1])
-    ax_main.set_clip_on(False)
-    leg = ax_main.get_legend()
-    leg.set_bbox_to_anchor((0.05,0.2,0.3,0.3))
-    if sext > 0 and t > 100:
-        # ["#640000", "#850000", "#B20000", "#DE0000", "#FF0000"]
-        int_colors = dict(zip([1, 2, 4, 8, 16], [0.1, 0.175, 0.25, 0.325, 0.4]))
-        y0, y1 = ax_main.get_ylim()
-        xx = [100, 150]
-        xx = [ttt for ttt in xx if ttt <= t]
-        if len(xx) > 0:
-            ax_main.fill_between(
-                xx,
-                [y0] * len(xx),
-                [y1] * len(xx),
-                color="red",
-                alpha=int_colors[sext],
-                zorder=-1,
-                lw=0,
+for examplesimadaptive in [False, True]:
+    fig, axs = plt.subplots(2,3, sharex=True, sharey=True, figsize=(16/2.54, 9/2.54))
+    storeall = []
+    for ax, sext in zip(axs.flatten(), [0,1,2,4,8,16]):
+        if examplesimadaptive:
+            examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps1.0-m1_lam0.005_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
+        else:
+            examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps0.0-m1_lam0.0_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
+        examplesim.loc[examplesim.time.isin([99,149,199])].pivot_table(values="0", index="time", columns="agent_id")
+        
+        T = 200
+        dim = "0"
+        adaptive = True
+        seed = 0  # np.random.randint(10)
+        window = 10
+        df = examplesim[["0", "agent_id", "time"]]
+        df = df.sort_values(["agent_id", "time"])
+        t = 200
+        final_values = df.loc[df.time == t, ["agent_id", dim]]
+        if window > 0:
+            df["belief_smooth"] = df.groupby("agent_id")[dim].transform(
+                lambda x: x.rolling(window, min_periods=1).mean()
             )
-
-        ax_main.text(130,0., rf"$s={sext}$", ha="center", fontsize=smallfs)
-
-    if sext==4:
-        for (x, y), type in zip(
-            [(20, 0.7), (110,-0.4),(60,0.3), (162, -0.4)],
-            ["persistent-positive", "resistant", "compliant", "resilient"],
-        ):
-            bboxprops = dict(
+        else:
+            df["belief_smooth"] = df[dim]
+        df_pivot = df.pivot(index="time", columns="agent_id", values="belief_smooth")
+        storeall.append(df_pivot)
+        bboxprops = dict(
                 boxstyle="round",
-                facecolor=cmap[type],
-                edgecolor="white",
+                facecolor=cmap["late-compliant"],
+                edgecolor='white',
                 alpha=0.8,
             )
-            if examplesimadaptive or type=="compliant": 
-                ax_main.text(
-                    x,
-                    y,
-                    type,
-                    color=(
-                        "white"
-                        if type in ["resilient", "resistant"]
-                        else "k"
-                    ),
-                    va="center",
-                    ha="left",
-                    bbox=bboxprops,
-                    fontsize=smallfs,
+        ap = dict(arrowstyle="-", connectionstyle="arc3,rad=0", color="black", shrinkA=0, shrinkB=0,)
+
+        ax_main = ax
+        # for seed=98:
+        resistant = 50 # resistant
+        persistentpositive = 5
+        resilient = 55
+        compliant = 8
+        ax_main.plot([],[],lw=0.7, alpha=0.4, label="agent", color="grey")
+        leg= ax_main.legend(loc="center left")
+        df_pivot = df_pivot.loc[df_pivot.index <= t]
+        df_pivot.plot(ax=ax_main, lw=0.5, alpha=0.4, legend=False, color="grey", label="_")
+        for i, name in zip([resistant, resilient, compliant, persistentpositive],["resistant", "resilient", "compliant", "persistent-positive"]):
+            if examplesimadaptive or name=="compliant":
+                df_pivot.T.loc[i].plot(ax=ax_main, lw=2 if i not in [latecompliant, nonpersistentpos] else 1, ls="-" if i not in [latecompliant, nonpersistentpos] else "--", color=cmap[name], alpha=0.8, legend=False, label="_", )
+        ax_main.set_xlabel("time", fontsize=bigfs)
+        ax_main.set_ylabel("focal belief", fontsize=bigfs, va="top")
+        ax_main.set_xlim(0, T)
+        if len(dim) == 1:
+            ax_main.set_ylim(-1, 1)
+        ax_main.set_yticks([-1,0,1])
+        ax_main.set_clip_on(False)
+        leg = ax_main.get_legend()
+        leg.set_bbox_to_anchor((0.05,0.2,0.3,0.3))
+        if sext > 0 and t > 100:
+            # ["#640000", "#850000", "#B20000", "#DE0000", "#FF0000"]
+            int_colors = dict(zip([1, 2, 4, 8, 16], [0.1, 0.175, 0.25, 0.325, 0.4]))
+            y0, y1 = ax_main.get_ylim()
+            xx = [100, 150]
+            xx = [ttt for ttt in xx if ttt <= t]
+            if len(xx) > 0:
+                ax_main.fill_between(
+                    xx,
+                    [y0] * len(xx),
+                    [y1] * len(xx),
+                    color="red",
+                    alpha=int_colors[sext],
+                    zorder=-1,
+                    lw=0,
                 )
-axs[-1,0].set_xlabel("")
-axs[-1,-1].set_xlabel("")
-axs[0,0].text(0.02,1.02,f"example simulation ({'adaptive' if examplesimadaptive else 'fixed'}{f', smoothed ({window} steps)' if window>0 else ''})", transform=axs[0,0].transAxes, ha="left", va="bottom", fontsize=smallfs)
-import string
-for n, ax in enumerate(axs.flatten()): 
-    ax.text(0.025, 0.975, string.ascii_uppercase[n], fontsize=12, fontdict={"weight":"bold"},va="top", ha="left", transform=ax.transAxes)
-fig.subplots_adjust(left=0.06, right=0.98, top=0.94, bottom=0.12, wspace=0.1)
-plt.savefig(f"figs/2026-01-26_responses_over_sext{'' if examplesimadaptive else '_fixed'}.png", dpi=600)
+
+            ax_main.text(130,0., rf"$s={sext}$", ha="center", fontsize=smallfs)
+
+        if sext==4:
+            for (x, y), type in zip(
+                [(20, 0.7), (110,-0.4),(60,0.3), (162, -0.4)],
+                ["persistent-positive", "resistant", "compliant", "resilient"],
+            ):
+                bboxprops = dict(
+                    boxstyle="round",
+                    facecolor=cmap[type],
+                    edgecolor="white",
+                    alpha=0.8,
+                )
+                if examplesimadaptive or type=="compliant": 
+                    ax_main.text(
+                        x,
+                        y,
+                        type,
+                        color=(
+                            "white"
+                            if type in ["resilient", "resistant"]
+                            else "k"
+                        ),
+                        va="center",
+                        ha="left",
+                        bbox=bboxprops,
+                        fontsize=smallfs,
+                    )
+    axs[-1,0].set_xlabel("")
+    axs[-1,-1].set_xlabel("")
+    axs[0,0].text(0.02,1.02,f"example simulation ({'adaptive' if examplesimadaptive else 'fixed'}{f', smoothed ({window} steps)' if window>0 else ''})", transform=axs[0,0].transAxes, ha="left", va="bottom", fontsize=smallfs)
+    import string
+    for n, ax in enumerate(axs.flatten()): 
+        ax.text(0.025, 0.975, string.ascii_uppercase[n], fontsize=12, fontdict={"weight":"bold"},va="top", ha="left", transform=ax.transAxes)
+    fig.subplots_adjust(left=0.06, right=0.98, top=0.94, bottom=0.12, wspace=0.1)
+    plt.savefig(f"figs/2026-01-26_responses_over_sext{'' if examplesimadaptive else '_fixed'}.png", dpi=600)
+
+#%%
+x = np.arange(145, 165)
+pd.DataFrame({f"{s2}-{s1}": (pd.DataFrame(storeall[ns+1].iloc[x],) - pd.DataFrame(storeall[ns].iloc[x],)).abs().mean(axis=1) for ns, (s1,s2) in enumerate(zip([1,2,4,8,16], [0,1,2,4,8,16]))}).plot()
+plt.ylim(0.0,0.1)
+#plt.yscale("log")
+plt.legend(title="avg focal\nbelief difference \nbetween simulations\nwith pressures $s$:")
+plt.ylabel(r"average distance $|x_{foc, i}(t)_{s=s1} - x_{foc, i}(t)_{s=s2}|$")
+
+
+#%%
+
 
 # %%
 # ----------------------------------------------
 # -----    DESCRIBE METRICS STATS    ------
 # ----------------------------------------------
+from scipy.stats import ttest_ind
 metric2title = dict(
     focal_belief = r"$x_{foc}$",
     abs_meanbelief_nonfocal = r"$|X_{non\text{-}foc}|$",
@@ -403,17 +415,20 @@ t = 94.5
 ttt=  f"{t-4.5}-{t+4.5}" if (t%10) == 4.5 else t
 s_ext = 4
 print("".join(["#"]*50)+f"\n time = {ttt}\n"+"".join(["#"]*50)+f"\n s_ext = {s_ext}\n"+"".join(["#"]*50))
-print(" & ".join(["", "compliant", "resilient", "resistant"]))
+print(" & ".join(["", "compliant", "resilient & cohen's $d$", "resistant & cohen's $d$"]))
+
 ds["energy"] = ds["personalBN_energy"] + ds["social_energy"] + ds["external_energy"]
 ds["personalBN_nonfocal_energy"] = ds["personalBN_energy"] - ds["personalBN_focal_energy"] + ds["external_energy"]
-for metric in BNmetrics+["n_neighbours"]:
+for metric in all_metrics:
     # print("".join(["#"]*3)+f" {metric}")
-
-    a = (
+    metricvals = (
         ds
         .sel(adaptive=1, time=t, s_ext=s_ext)[[metric, "response_type"]]
         .to_dataframe()
         .reset_index()
+    )
+    a = (
+        metricvals
         .groupby("response_type")[metric]
         .agg(mean="mean", sd="std", count="count")
         .rename(columns={"mean":metric})
@@ -421,9 +436,20 @@ for metric in BNmetrics+["n_neighbours"]:
     )
     a["response_type"] = a["response_type"].map(response_map_inv)
     #display(a)
-    print(f"{metric2title[metric]} & ", end="")
+    print(f"{metric2title[metric]} &  ", end="")
     for r in ["compliant", "resilient", "resistant"]:
-        print(f"${a.loc[a.response_type==r, metric].values[0]:.2f} \pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$", end=" & ")
+        group = metricvals[metricvals["response_type"] == response_map[r]][metric]
+        compl = metricvals[metricvals["response_type"] == response_map["compliant"]][metric]    
+        def cohens_d(a, b):
+            return (a.mean() - b.mean()) / ((a.var() + b.var()) / 2) ** 0.5
+        def cohens_d_glass(a, b):
+            return (a.mean() - b.mean()) / ((b.var())) ** 0.5
+        stat, p = ttest_ind(group, compl, equal_var=False)
+        print(f"${a.loc[a.response_type==r, metric].values[0]:.2f} \pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$ {fr'$^*$' if p<0.05 else ''}" + ("" if r=="compliant" else fr" & ${cohens_d(group, compl):.1f}$"), end=" & ")
+        
+        if r=="resistant":
+            resil = metricvals[metricvals["response_type"] == response_map["resilient"]][metric]    
+            print(fr" ${cohens_d(group, resil):.1f}$ ", end=" & ")
     print("\\\\")
 print(f"proportion & ", end="")
 sum = np.sum([a.loc[a.response_type==r, "count"].values[0] for r in ["compliant", "resilient", "resistant"]])
@@ -454,6 +480,34 @@ for metric in BNmetrics:
         for a in aaa:
             print(f"${a.loc[a.response_type==r, metric].values[0]:.2f} \pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$", end=" & ")        
     print("\\\\")
+
+#%% 
+s_ext = 4
+energy_metrics = ['energy',
+ 'personalBN_focal_energy',
+ 'personalBN_nonfocal_energy',
+ 'external_energy',
+ 'social_energy']
+t = 94.5
+ttt=  f"{t-4.5}-{t+4.5}" if (t%10) == 4.5 else t
+fig, axs = plt.subplots(2,1, sharex=True, figsize=(12/2.54,8/2.54 ))
+for metric in ["energy"]:
+    for ax, adaptive in zip(axs, [0,1]):
+        a = (
+                ds
+                .sel(adaptive=adaptive, time=t, s_ext=s_ext)[[metric, "response_type"]]
+                .to_dataframe()
+                .reset_index()
+            )
+        a["response_type"] = a["response_type"].replace(response_map_inv)
+        sns.histplot(a, x=metric, hue="response_type", palette=cmap, ax=ax, bins=np.arange(-32,6.1,2), kde=True, multiple="dodge", legend=False)
+        ax.set_yticks([])
+        ax.set_ylabel("")
+axs[0].set_title("fixed belief networks", fontsize=bigfs)
+axs[1].set_title("adaptive belief networks", fontsize=bigfs)
+axs[1].set_xlabel(rf"Dissonance {metric2title[metric]} at" + rf" $t={ttt}$", fontsize=bigfs)
+fig.tight_layout()
+plt.savefig("figs/DtotDist_adaptiveFixed_s4.png", dpi=600)
 
 # %%
 # ----------------------------------------------
@@ -636,7 +690,7 @@ if further_plots:
 # -------    VARIANCE OF RESPONSE
 # ----------------------------------------------
 
-further_plots = False 
+further_plots = False
 if further_plots: 
     a = ds.sel(s_ext=4, adaptive=1)["response_type"].to_dataframe()
     a["response_type"] = a["response_type"].map(response_map_inv)

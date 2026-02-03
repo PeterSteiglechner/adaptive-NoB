@@ -28,8 +28,8 @@ link_prob = 0.1
 omega0 = 0.1
 beta=3.0
 condition_string =f"omega{omega0}_rho{rho:.2f}_beta{beta}_p{link_prob}"
-# ds = xr.load_dataset(f"processed_data/"
-#                      f"2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
+ds = xr.load_dataset(f"processed_data/"
+                     f"2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
 
 # %%
 belief_dimensions = list(range(ds.attrs["M"]))
@@ -56,7 +56,7 @@ response_map_inv = {val: key for key, val in response_map.items()}
 cmap = dict(
     zip(
             responses+["NA"],
-            ["#4DAF4A", "#A6D854", "#469FDB", "#B8DFF3", "#7A0177", "#E41A1C",  "#666666"],
+            ["#4CAF50", "#AED581", "#2196F3", "#90CAF9", "#9C27B0", "#F44336", "#9E9E9E"],
         )
     )
 
@@ -219,7 +219,146 @@ condition_string =f"omega{0.1}_rho{rho:.2f}_beta{1.5}_p{0.1}"
 ds = xr.load_dataset(f"processed_data/"
                      f"2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
 # %%
+plt.figure(figsize=(10/2.54, 5/2.54))
 for t in ds.time:
-    sns.histplot(ds.sel(s_ext=1, adaptive=0,time=t, seed=0).to_dataframe()["focal_belief"], label=t.values)
+    sns.histplot(ds.sel(s_ext=1, adaptive=0,time=t, seed=0).to_dataframe()["focal_belief"], label=t.values, bins=np.linspace(-1.05,1.05,21))
 plt.legend(title="t")
+# %%
+
+
+# ----------------------------------------------
+# -------    One at a a time
+# ----------------------------------------------
+
+# %%
+sext = [4]
+initial_ws = [0.05, 0.1, 0.2, 0.3, 0.4, 0.6, 1.0]
+betas = [0.5, 1.5, 2.25, 3., 4.5, 6., 10.]
+adaptivefixed = [(1.0,0.005)] # [(0.0,0.0), (1.0,0.005)]
+ps = [0.0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+
+allparams = [
+    ("p", [[4], [0.2], [3.], ps]),
+    ("beta", [[4], [0.2], betas, [0.1]]),
+    ("omega0", [[4], initial_ws, [3.], [0.1]])
+]
+
+
+fig, axs = plt.subplots(2,3, figsize=(12/2.54, 8/2.54), sharex="col", sharey=True)
+for row, adaptivefixed in enumerate([(0.0,0.0), (1.0,0.005)]):
+    countResponses = []
+    for col, (name, allpar) in enumerate(allparams):
+        currsext, currinitws, currbetas, currps = allpar 
+        for p in  currps:
+            for omega0 in currinitws:
+                for s_ext in currsext:
+                    for beta in currbetas:
+                        condition_string =f"omega{omega0}_rho{rho:.2f}_beta{beta}_p{p}"
+                        ds = xr.load_dataset(f"processed_data/"
+                                #+2026-01-19_modelAdaptiveBN_sensitivityAnalyses_processedData_metricsOnly/
+                                f"2026-01-21_modelAdaptiveBN_{condition_string}_results_metricsOnly_tresh{tresh}.ncdf", engine="netcdf4")
+                        eps, lam = adaptivefixed
+                        adaptive = int(eps>0)
+                        resp = ds.response_type.sel(adaptive=adaptive, s_ext=s_ext)
+                        focalBeliefStd = ds.sel(adaptive=adaptive, s_ext=s_ext, time=94.5).focal_belief.std(dim="agent_id").mean(dim="seed")
+                        focalBeliefStdPost = ds.sel(adaptive=adaptive, s_ext=s_ext, time=194.5).focal_belief.std(dim="agent_id").mean(dim="seed")
+                        focalBeliefStdErr = ds.sel(adaptive=adaptive, s_ext=s_ext, time=94.5).focal_belief.std(dim="agent_id").std(dim="seed")
+                        focalBeliefStdPostErr = ds.sel(adaptive=adaptive, s_ext=s_ext, time=194.5).focal_belief.std(dim="agent_id").std(dim="seed")
+                        for response_type, r in response_map.items():
+                            count = (resp == r).sum().values
+                            countResponses.append(
+                                {
+                                    "name":name,
+                                    "condition_string": condition_string,
+                                    "s_ext":s_ext,
+                                    "beta":beta,
+                                    "p":p,
+                                    "omega0":omega0,
+                                    "adaptive": adaptive,
+                                    "response": response_type,
+                                    "count": int(count),
+                                    "focalBeliefStd": focalBeliefStd.values,
+                                    "focalBeliefStdPost": focalBeliefStdPost.values,
+                                    "focalBeliefStdErr": focalBeliefStdErr.values,
+                                    "focalBeliefStdPostErr": focalBeliefStdPostErr.values,
+                                }
+                            )
+        dff = pd.DataFrame(countResponses)
+        
+        for name, ax in zip(dff.name.unique(), axs[row,:]):
+            currdff = dff.loc[dff.name==name]
+            currdff = currdff.sort_values([name])
+            currdff["normalized_count"] = currdff["count"] / (len(ds.seed) * len(ds.agent_id))
+            currdff["response"] = currdff["response"].replace("NA", np.nan)
+            df = currdff.dropna().copy()
+            grouped = (
+                df.groupby([name,  "response"])["normalized_count"].sum().reset_index()
+            )
+            grouped["normalized_count"] = grouped["normalized_count"].fillna(0)            
+            tmp = (
+                grouped
+                .pivot(index=name, columns="response", values="normalized_count")
+                .reindex(columns=responsesNames)
+                .fillna(0)
+            )
+            tmp.plot(
+                kind="bar",
+                stacked=True,
+                ax=ax,
+                color=[cmap[s] for s in responsesNames],
+                legend=False,
+            )
+            stds = df.groupby(["beta", "p", "omega0"])["focalBeliefStd"].first().values
+            stderrs = df.groupby(["beta", "p", "omega0"])["focalBeliefStdErr"].first().values
+            stdPosts = df.groupby(["beta", "p", "omega0"])["focalBeliefStdPost"].first().values
+            stdPosterrs = df.groupby(["beta", "p", "omega0"])["focalBeliefStdPostErr"].first().values
+            ax2 = ax.twinx()
+            ax2.set_ylim(0,2)
+            ax2.set_yticks([0,1,2])
+            for ns, (std, stderr, stdpost, stdposterr) in enumerate(zip(stds, stderrs, stdPosts, stdPosterrs)):
+                ax2.errorbar(ns, std, 
+                            yerr=stderr,marker="d", color=colBefore, lw=1, markersize=3)
+                ax2.errorbar(ns +0.02, stdpost, 
+                            yerr=stdposterr,marker="d", color=colAfter, lw=1, markersize=3)
+            if ax==axs[0,-1]:
+                ax.text( ns+0.07,1.18, "focal std", fontsize=smallfs-1, va="bottom", ha="center")
+                ax2.annotate(r"before", (ns,std), (ns-1,2.17), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3"), bbox=dict(pad=0.0,fc='none', ec='none', color=colBefore), color=colBefore)
+                ax2.annotate(r"after", (ns,stdpost), (ns+0.7,2.17), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.2", color=colAfter), bbox=dict(pad=0.0,fc='none', ec='none'), color=colAfter)
+            if ax==axs[0,-1]:
+                ax2.set_ylabel("focal belief standard deviation (dots)", y=-0.1)
+            else:
+                ax2.set_ylabel("")
+                ax2.set_yticklabels([])
+            ax.set_ylim(0,1)
+            label={
+                "p": r"link probability $p$",
+                "beta": "attention " + r"$\beta$",
+                "omega0": r"initial edge weight $\omega_0$",
+            }
+            ax.set_yticks([0,0.5,1.])
+            ax.set_xlabel(label[name], fontsize=bigfs, va="top",)
+axs[0,0].set_ylabel("Proportion (bars)", fontsize=bigfs, y=0)
+axs[0,1].set_title("fixed belief networks", fontsize=bigfs)
+axs[1,1].set_title("adaptive belief networks", fontsize=bigfs)
+fig.suptitle(rf"One-Factor-At-a-Time Sensitivity Analysis (for $s={s_ext}$)", fontsize=bigfs)
+fig.subplots_adjust(hspace=0.35, top=0.85, left=0.1, right=0.9, bottom=0.18)
+plt.savefig("figs/sensAna_OFAT_full.png", dpi=600)
+        
+
+# %%
+"""
+Take home:
+* social connectivity p:
+    - increasing p reduces consensus in fixed and adaptive belief networks
+    - also increases social pressure and thereby helps to "lock-in" people after the external pressure event. 
+    - however, when consensus is reached (around p=0.3), agents fully resist (if they hold a shared negative focal beliefs before the external event). 
+* Attention $\beta$:
+    - when agents do not pay attention to dissonance, they do not adhere to the external event much (resilient = compliant = non-persistent-positives = persistent positives). 
+    - when agents pay a lot of attention to dissonance, resilience grows
+    - holds for fixed and adaptive. but with adaptive belief networks, we always retain a few resilient agents
+* initial edge weight (for adaptive) and fixed edge weight (for fixed), $\omega_0$:
+    - for fixed: consensus breaks at critical omega0. 
+    - for fixed: when consensus breaks, more resilience (and if omega0 even stronger, more resistance)
+    - for adaptive, omega0 matters little, unless it is very strong. Then it fosters resilience and resistance.
+"""
 # %%
