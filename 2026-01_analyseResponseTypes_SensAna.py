@@ -173,3 +173,6 @@ for t in ds.time:
     sns.histplot(ds.sel(s_ext=1, adaptive=0,time=t, seed=0).to_dataframe()["focal_belief"], label=t.values)
 plt.legend(title="t")
 # %%
+a=2
+# %%
+a

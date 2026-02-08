@@ -265,11 +265,7 @@ for (x, y), type in zip(
         x,
         y,
         type,
-        color=(
-            "white"
-            if type in ["resilient", "resistant"]
-            else "k"
-        ),
+        color="white",
         va="center",
         ha="left",
         bbox=bboxprops,
@@ -377,11 +373,7 @@ for ax, sext in zip(axs.flatten(), [0,1,2,4,8,16]):
                 x,
                 y,
                 type,
-                color=(
-                    "white"
-                    if type in ["resilient", "resistant"]
-                    else "k"
-                ),
+                color="white",
                 va="center",
                 ha="left",
                 bbox=bboxprops,

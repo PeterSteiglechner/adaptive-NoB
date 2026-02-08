@@ -9,6 +9,8 @@ import seaborn as sns
 import netCDF4
 import json
 import xarray as xr
+import matplotlib as mpl
+import matplotlib.patches as mpatches
 
 plt.rcParams.update({"font.size": 10})
 bigfs = 9
@@ -115,9 +117,9 @@ for examplesimadaptive in [False, True]:
     axs[3].sharex(axs[2])
     for ax, adaptive in zip(axs[2:], [False, True]):
         subset = df.loc[df.adaptive == adaptive]
-        sns.stripplot(subset, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=1.5, alpha=0.3, dodge=True)
+        sns.stripplot(subset, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=1.2, alpha=0.2, dodge=True)
         avgs = subset.groupby(["response", "s_ext_log2"])["normalized_count"].median().reset_index()
-        sns.stripplot(avgs, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=5, alpha=0.8, dodge=True, marker="s")
+        sns.stripplot(avgs, ax=ax, x="s_ext_log2", hue="response", y="normalized_count", jitter=True, palette=cmap, hue_order=responses, legend=False, size=4, alpha=0.8, dodge=True, marker="s")
         for i in [0.5,2.5]:
             ax.fill_between([i,i+1], [0,0],[1,1], color="gainsboro", zorder=-1)
         ax.set_ylabel("proportion in one simulation", fontsize=bigfs)
@@ -167,11 +169,11 @@ for examplesimadaptive in [False, True]:
     # axs[3].annotate("late-compliant", (0.3,0.68), (0.8,0.68), fontsize=smallfs, arrowprops=ap,bbox=bboxprops)
     # axs[3].annotate("non-persistent-\npositive", (0.3,0.4), (0.8,0.2), fontsize=smallfs, arrowprops=ap,bbox=bboxprops)
     if examplesimadaptive:
-        axs[0].text(68, 0.18, "not shown: ",fontsize=smallfs-2, va="top", ha="right")
-        axs[0].text(70,0.18, "late-compliant",fontsize=smallfs-2, va="top", ha="left",bbox=bboxprops)
+        axs[0].text(65, 0.18, "not shown: ",fontsize=smallfs-2, va="top", ha="right", bbox=dict(facecolor="white", alpha=0.6, pad=0.0))
+        axs[0].text(66,0.18, "late-compliant",fontsize=smallfs-2, va="top", ha="left",bbox=bboxprops)
         bboxprops["facecolor"] = cmap["non-persistent-positive"]
-        axs[0].text(38, 0.56, "not shown: ",fontsize=smallfs-2, va="top", ha="right")
-        axs[0].text(40, 0.56, "non-persistent-positive",fontsize=smallfs-2, va="top", ha="left",bbox=bboxprops)
+        axs[0].text(36, 0.58, "not shown: ",fontsize=smallfs-2, va="top", ha="right", bbox=dict(facecolor="white", alpha=0.6, pad=0.0))
+        axs[0].text(37, 0.58, "non-persistent-positive",fontsize=smallfs-2, va="top", ha="left",bbox=bboxprops)
 
     ax_main = axs[0]
     # for seed=98:
@@ -262,9 +264,10 @@ for examplesimadaptive in [False, True]:
 # -------    OVER S_EXT EXAMPLE RUN
 # ----------------------------------------------
 
+storeall = {}
 for examplesimadaptive in [False, True]:
     fig, axs = plt.subplots(2,3, sharex=True, sharey=True, figsize=(16/2.54, 9/2.54))
-    storeall = []
+    storeall[examplesimadaptive] = []
     for ax, sext in zip(axs.flatten(), [0,1,2,4,8,16]):
         if examplesimadaptive:
             examplesim = pd.read_csv(f"sims/2026-01-21_singleRuns/detailed/adaptiveBN_M-10-randomInitialOps_n-100-(p=0.1)_eps1.0-m1_lam0.005_rho0.33_beta3.0_initialW-0.2_ext-100-149-on-0-strength{sext}_seed98_detailed.csv")
@@ -288,7 +291,7 @@ for examplesimadaptive in [False, True]:
         else:
             df["belief_smooth"] = df[dim]
         df_pivot = df.pivot(index="time", columns="agent_id", values="belief_smooth")
-        storeall.append(df_pivot)
+        storeall[examplesimadaptive].append(df_pivot)
         bboxprops = dict(
                 boxstyle="round",
                 facecolor=cmap["late-compliant"],
@@ -354,11 +357,7 @@ for examplesimadaptive in [False, True]:
                         x,
                         y,
                         type,
-                        color=(
-                            "white"
-                            if type in ["resilient", "resistant"]
-                            else "k"
-                        ),
+                        color="white",
                         va="center",
                         ha="left",
                         bbox=bboxprops,
@@ -375,11 +374,16 @@ for examplesimadaptive in [False, True]:
 
 #%%
 x = np.arange(145, 165)
-pd.DataFrame({f"{s2}-{s1}": (pd.DataFrame(storeall[ns+1].iloc[x],) - pd.DataFrame(storeall[ns].iloc[x],)).abs().mean(axis=1) for ns, (s1,s2) in enumerate(zip([1,2,4,8,16], [0,1,2,4,8,16]))}).plot()
-plt.ylim(0.0,0.1)
+ax= plt.axes()
+ax.plot([],[],"-k", label="fixed")
+ax.plot([],[],"--k", label="adaptive")
+ax.legend()
+pd.DataFrame({f"{s2}-{s1}": (pd.DataFrame(storeall[False][ns+1].iloc[x],) - pd.DataFrame(storeall[False][ns].iloc[x],)).abs().mean(axis=1) for ns, (s1,s2) in enumerate(zip([1,2,4,8,16], [0,1,2,4,8,16]))}).plot(ax=ax, colormap="viridis")
+plt.legend(title="avg focal\nbelief difference \nbetween simulations\nwith pressures $s$:", ncol=2)
+pd.DataFrame({f"{s2}-{s1}": (pd.DataFrame(storeall[True][ns+1].iloc[x],) - pd.DataFrame(storeall[True][ns].iloc[x],)).abs().mean(axis=1) for ns, (s1,s2) in enumerate(zip([1,2,4,8,16], [0,1,2,4,8,16]))}).plot(ls="--",ax=ax, legend=False, colormap="viridis")
+plt.ylim(0.0,0.4)
 #plt.yscale("log")
-plt.legend(title="avg focal\nbelief difference \nbetween simulations\nwith pressures $s$:")
-plt.ylabel(r"average distance $|x_{foc, i}(t)_{s=s1} - x_{foc, i}(t)_{s=s2}|$")
+plt.ylabel(r"$|x_{foc, i}(t)_{s=s1} - x_{foc, i}(t)_{s=s2}|$, averaged over all agents")
 
 
 #%%
@@ -393,19 +397,36 @@ from scipy.stats import ttest_ind
 metric2title = dict(
     focal_belief = r"$x_{foc}$",
     abs_meanbelief_nonfocal = r"$|X_{non\text{-}foc}|$",
-    bn_expected_influence = r"$\langle\delta x_{foc}\rangle$", 
     n_neighbours = r"$|\mathcal{K}|$", 
-    nr_balanced_triangles_tot = r"BN-$\alpha$",
-    nr_balanced_triangles_focal = r"BN-$\alpha_{foc}$",
     bn_abs_meanedge_tot = r"BN-$|\Omega|$",
     bn_abs_meanedge_focal = r"BN-$|\Omega_{foc}|$",
-    bn_avg_weighted_clustering = r"BN-$CC$",
-    bn_betweenness_centrality = r"BN-$BC$",
-    personalBN_nonfocal_energy = r"$D_{non\text{-}foc}$",
+    nr_balanced_triangles_tot = r"BN-$\alpha$",
+    nr_balanced_triangles_focal = r"BN-$\alpha_{foc}$",
+    bn_avg_weighted_clustering = r"BN-clust",
+    # bn_betweenness_centrality = r"BN-centr",
+    # bn_expected_influence = r"$\langle\delta x_{foc}\rangle$", 
     personalBN_focal_energy = r"$D_{BN\text{-}foc}$",
+    personalBN_nonfocal_energy = r"$D_{non\text{-}foc}$",
     social_energy = r"$D_{social}$",
-    external_energy = r"$D_{ext}$",    
-    energy = r"$D_{tot}$",
+    # external_energy = r"$D_{ext}$",    
+    # energy = r"$D_{tot}$",
+)
+metric2titleVerb = dict(
+    focal_belief = r"focal belief",
+    abs_meanbelief_nonfocal = r"extremity non-focal",
+    n_neighbours = r"nr social contacts", 
+    bn_abs_meanedge_tot = r"BN connectedness",
+    bn_abs_meanedge_focal = r"BN connectedness focal",
+    nr_balanced_triangles_tot = r"BN balance",
+    nr_balanced_triangles_focal = r"BN balance focal",
+    bn_avg_weighted_clustering = r"BN clustering",
+    # bn_betweenness_centrality = r"BN centrality",
+    # bn_expected_influence = r"expected influence focal", 
+    personalBN_focal_energy = r"focal BN dissonance",
+    personalBN_nonfocal_energy = r"non-focal BN dissonance",
+    social_energy = r"focal social dissonance",
+    # external_energy = r"focal external dissonance",    
+    # energy = r"total dissonance",
 )
 BNmetrics = ["nr_balanced_triangles_tot", "nr_balanced_triangles_focal", "bn_abs_meanedge_tot", "bn_abs_meanedge_focal","bn_avg_weighted_clustering"]
 
@@ -413,56 +434,266 @@ all_metrics = metric2title.keys()
 
 t = 94.5
 ttt=  f"{t-4.5}-{t+4.5}" if (t%10) == 4.5 else t
+cohensd = []
+for s_ext in [1,2,4,8,16]:
+    print("".join(["#"]*50)+f"\n time = {ttt}\n"+"".join(["#"]*50)+f"\n s_ext = {s_ext}\n"+"".join(["#"]*50))
+    print(" & "+" & ".join(["", "compliant", "resilient", "resistant"]+ [r"$d_{\text{Rr-C}}$", r"$d_{\text{R-r}}$"]) + " & \\\\ \\hline")
+    ds["energy"] = ds["personalBN_energy"] + ds["social_energy"] + ds["external_energy"]
+    ds["personalBN_nonfocal_energy"] = ds["personalBN_energy"] - ds["personalBN_focal_energy"] + ds["external_energy"]
+    for metric in all_metrics:
+        # print("".join(["#"]*3)+f" {metric}")
+        metricvals = (
+            ds
+            .sel(adaptive=1, time=t, s_ext=s_ext)[[metric, "response_type"]]
+            .to_dataframe()
+            .reset_index()
+        )
+        a = (
+            metricvals
+            .groupby("response_type")[metric]
+            .agg(mean="mean", sd="std", count="count")
+            .rename(columns={"mean":metric})
+            .reset_index()
+        )
+        a["response_type"] = a["response_type"].map(response_map_inv)
+        #display(a)
+        print(f"{metric2titleVerb[metric]} &  "+f"{metric2title[metric]} &  ", end="")
+        for r in ["compliant", "resilient", "resistant"]:
+            # def cohens_d_glass(a, b):
+            #     return (a.mean() - b.mean()) / ((b.var())) ** 0.5
+            if len(a.loc[a.response_type==r])>0:
+                print(
+                    f"${a.loc[a.response_type==r, metric].values[0]:.2f} \\pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$", 
+                    end=" & "
+                    )
+            else:
+                print(" ", end=" & ")
+        if "ext" in metric:
+            print(fr" & ", end=" & ")
+        else:
+            def cohens_d(a, b):
+                return (a.mean() - b.mean()) / ((a.var() + b.var()) / 2) ** 0.5
+
+            for g, baseg, name in zip([["resistant", "resilient"], ["resistant"]],["compliant", "resilient"], ["rR-C", "R-r"]):
+                base = metricvals[metricvals["response_type"] == response_map[baseg]][metric]
+                group = metricvals[metricvals["response_type"].isin([response_map[gg] for gg in g])][metric]
+                if len(group)>0:
+                    stat, p = ttest_ind(group, base, equal_var=False)
+                    # r" $d_{"+fr"{name}" +r"}="+ 
+                    d = cohens_d(group, base)
+                    print(fr"${d:.1f}$ {fr'$^*$' if p<0.05 else ''}", end=" & ")
+                else:
+                    d=np.nan
+                    print(fr"", end=" & ")
+                    
+                cohensd.append([s_ext, metric2title[metric], metric2titleVerb[metric], name, d, ])
+        print("\\\\")
+    print(f"proportion & & ", end="")
+    for r in ["compliant", "resilient", "resistant"]:#a.response_type.unique():
+        if r in a.response_type.values:
+            sum = np.sum([0 if rr not in a["response_type"].values else a.loc[a.response_type==rr, "count"].values[0] for rr in ["compliant", "resilient", "resistant"]])
+            print(f"${(a.loc[a.response_type==r, "count"].values[0]/sum)*100:.1f}"+ "\\,\\%$", end=" & ")
+    print(" & \\\\")
+    for _ in range(3):
+        print("")
+
+#%%
+diss = True
+coefs_rr_v = pd.read_csv(f"regression_results/coef_bin1_main_{'' if diss else 'no_'}diss.csv")
+coefs_rr_v["type"] = "Rr-C"
+coefs_r_r = pd.read_csv(f"regression_results/coef_bin2_main_{'' if diss else 'no_'}diss.csv")
+coefs_r_r["type"] = "R-r"
+coeffs = pd.concat([coefs_rr_v, coefs_r_r])
+coeffs = coeffs.rename(columns={"pressureVal":"s"})
+#%%
+cmap = dict(zip([1,2,4,8,16], 
+    [(0.0000, 0.4470, 0.7410), # | deep blue         |
+    (0.8500, 0.3250 ,0.0980), # | orange            |
+    (0.9290 ,0.6940 ,0.1250), 
+    (0.4940, 0.1840, 0.5560),
+    (0.4660, 0.6740, 0.1880),
+    (0.3010, 0.7450, 0.9330),
+    (0.6350, 0.0780, 0.1840),
+]
+))
+
+cohensd_df = pd.DataFrame(cohensd, columns=["s", "metricMath", "metric", "type", "d"])
+nmetric = len(cohensd_df.metric.unique())
+fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(16/2.54, 8/2.54))
+#axs[0].scatter([],[],marker="o", c="grey", s=5, edgecolor="grey", label="regression\ncoefficient")
+dotpatch = mpl.lines.Line2D(
+    [0], [0], marker='o', linestyle='None', markerfacecolor='lightgrey', markeredgecolor='grey', markeredgewidth=0.7, markersize=4, label="regression\ncoefficient")
+patch = mpatches.Patch(color="grey", label=r"Cohen's $d$")
+axs[0].legend(handles=[patch, dotpatch],fontsize=smallfs, borderpad=0.25, handlelength=1, handleheight=0.5, handletextpad=0.7, facecolor="gainsboro", loc="lower right", edgecolor="none", framealpha=0.5)
+for n, ty in enumerate(["rR-C", "R-r"]):
+    ax = axs[n]
+    ss=[1,2,4] if ty=="R-r" else [1,2,4,8,16]
+    barsdf = cohensd_df.loc[(cohensd_df.type==ty)&(cohensd_df.s.isin(ss))].sort_values("s", ascending=False)
+    coeffs = coeffs.loc[~coeffs.term.str.contains("Intercept")]
+    coeffs["metric"] = coeffs["term"].map(metric2titleVerb)
+    points_df = (
+        coeffs.groupby(["metric", "s"])["beta"].first().reset_index()
+    )
+    plot_df = barsdf.merge(points_df, on=["metric", "s"], how="left")
+    metric_order = list(metric2titleVerb.values())[::-1]
+    sns.barplot(plot_df, x="d", y="metric", hue="s", hue_order=ss[::-1], dodge=True, ax=ax, palette=cmap, legend=False, zorder=10, order=metric_order, 
+    errorbar=None, alpha=0.8)
+    ax2 = ax.twiny()
+    sns.stripplot(
+        data=plot_df.dropna(subset=["beta"]),
+        x="beta", y="metric", hue="s",
+        hue_order=ss[::-1], order=metric_order,
+        dodge=True, jitter=False,
+        palette=cmap,
+        ax=ax2, legend=False,
+        size=4, zorder=20,
+        edgecolor="grey",
+        linewidth=1
+    )    
+    ax2.set_xlabel("Regression Coefficient (dots)", fontsize=smallfs)
+    if diss:
+        ax2.set_xlim(-1,1)
+    else:
+        ax2.set_xlim(-0.7,0.7)
+    ax.set_xlabel(r"Cohen's $d$ (bars)", fontsize=smallfs)
+    ax.set_title("\nResistant/Resilient vs. Compliant" if ty=="rR-C" else "\nResistant vs. Resilient", fontsize=bigfs+1)
+    ax.set_ylabel("")
+    maxy = np.argsort([p.get_y() for p in ax.patches],)[-10:-5] if n==0 else np.argsort([p.get_y() for p in ax.patches],)[-6:-3]
+    #ax.legend(title='pressure $s$', fontsize=smallfs, title_fontsize=smallfs, ncol=3, frameon=False)
+    for kk, (barind, text) in enumerate(zip(maxy, [fr"$s={s}$" for s in ss[::-1]])):
+        bar = ax.patches[barind]
+        h = bar.get_width()
+        if np.isnan(h):
+            continue
+
+        y = bar.get_y() + bar.get_height() / 2
+        x = bar.get_width() 
+        bar_fc = bar.get_facecolor()
+        ax.annotate(
+            text,
+            xy=(x, y),
+            xytext=(1.2, y+(1.3 if n==0 else 1)-(0.55 if n==0 else 0.35)*(len(maxy)-kk)),
+            ha="left",
+            va="center",
+            rotation=0,
+            fontsize=smallfs-1,
+            arrowprops=dict(
+                arrowstyle="-",
+                lw=1,
+                connectionstyle="arc,rad=0.1",  # vertical then tilt
+                color=bar_fc,
+            ),
+            bbox={"pad":0.02, "fc":"white", "ec":"none"},
+            color=bar_fc,
+            zorder=20,
+        )
+
+    ax.vlines([0], -0.5, nmetric+0.5, lw=0.5, color="grey")
+    ax.hlines([0.5+k for k in range(nmetric)], -1.7, 1.7, lw=0.5, color="grey")
+    ax.hlines([nmetric-2.5, nmetric-3.5,nmetric-8.5], -1.7, 1.7, lw=1.5, color="grey")
+    ax.set_ylim(-0.5, nmetric-0.5)
+    ax.set_xlim(-1.7, 1.7)
+    ax2.set_ylim(ax.get_ylim()) 
+
+# draw once so tick labels exist
+fig.canvas.draw()
+
+for label in axs[0].get_yticklabels():
+    if label.get_text() in list(coeffs.metric.unique()):
+        label.set_fontweight("bold")
+
+
+fig.subplots_adjust(left=0.23, top=0.82, right=0.98, bottom=0.12)
+plt.savefig(f"figs/cohensd_baseline{'_withDiss' if diss else ''}.png", dpi=600)
+
+
+
+#%%
+# def annotate_s_on_barplot(ax, barsinds, texts,yoffs, rotation=45, xoff=1):
+#     """
+#     Annotate each bar with its hue value (s=...) on a seaborn barplot.
+#     Works when hue="s" and dodge=True.
+#     """
+#     for barind, text, yoff in zip(barsinds, texts, yoffs):
+#         bar = ax.patches[barind]
+#         h = bar.get_height()
+#         if np.isnan(h):
+#             continue
+
+#         x = bar.get_x() + bar.get_width() / 2
+#         y = h
+#         bar_fc = bar.get_facecolor()
+#         ax.annotate(
+#             text,
+#             xy=(x, y),
+#             xytext=(x+xoff, yoff),
+#             ha="left",
+#             va="center",
+#             rotation=rotation,
+#             fontsize=smallfs-1,
+#             arrowprops=dict(
+#                 arrowstyle="-",
+#                 lw=1,
+#                 connectionstyle="angle3,angleA=0,angleB=-90",  # vertical then tilt
+#                 color=bar_fc,
+#             ),
+#             bbox={"pad":0.02, "fc":"white", "ec":"none"},
+#             color=bar_fc,
+#             zorder=20
+#         )
+
+
+
+# cohensd_df = pd.DataFrame(cohensd, columns=["s", "metricMath", "metric", "type", "d"])
+# nmetric = len(cohensd_df.metric.unique())
+# fig, axs = plt.subplots(1,2, sharex=True, sharey=True, figsize=(16/2.54, 7/2.54))
+# for n, ty in enumerate(["rR-C", "R-r"]):
+#     ss=[1,2,4] if ty=="R-r" else [1,2,4,8,16]
+#     ax = axs[n]
+#     sns.barplot(cohensd_df.loc[(cohensd_df.type==ty)&(cohensd_df.s.isin(ss))], y="d", x="metricMath", hue="s", dodge=True, ax=ax, palette=cmap, legend=False, zorder=10, order=list(metric2title.values()))
+#     if n==0:
+#         #ax.legend(title='pressure $s$', fontsize=smallfs, title_fontsize=smallfs, ncol=3, frameon=False)
+#         annotate_s_on_barplot(ax, barsinds=[k*nmetric for k in range(len(ss))], texts=[fr"$s={s}$" for s in ss], yoffs=[-1.55, -1.35, -1.15,-0.95,-0.75], xoff=1.2, rotation=0)
+#     ax.set_title("Resistant/Resilient vs. Compliant" if ty=="rR-C" else "Resistant vs. Resilient", fontsize=bigfs)
+#     ax.hlines([0], -0.5, nmetric-0.5, lw=0.5, color="grey")
+#     ax.vlines([0.5+k for k in range(nmetric)], -1.7, 1.7, lw=0.5, color="grey")
+#     ax.vlines([1.5, 2.5, 8.5], -1.7, 1.7, lw=1.5, color="grey")
+#     ax.set_xlim(-0.5, nmetric-0.5)
+#     ax.set_ylim(-1.7, 1.7)
+#     ax.set_xlabel("")
+#     ax.set_ylabel(r"Cohen's $d$")
+    
+# axs[1].annotate(
+#             r"eg. BN-$|\Omega_{foc}|_R \gg$"+"\n"+r"BN-$|\Omega_{foc}|_r$",
+#             xy=(4,1.1),
+#             xytext=(6,1.6),
+#             ha="left",
+#             va="top",
+#             rotation=0,
+#             fontsize=smallfs,
+#             arrowprops=dict(
+#                 arrowstyle="-",
+#                 lw=1,
+#                 connectionstyle="angle3,angleA=180,angleB=80",  # vertical then tilt
+#             ),
+#             bbox={"pad":0.02, "fc":"gainsboro", "ec":"none", "alpha":0.8},
+#             zorder=20
+#         ) 
+
+
+# fig.autofmt_xdate(rotation=90, ha="center")
+# fig.subplots_adjust(left=0.09, top=0.9, right=0.98, bottom=0.21, hspace=0.05, wspace=0.1)
+
+# plt.savefig("figs/cohensd_baseline_vert.png", dpi=600)
+
+#%%
+times = [94.5, 194.5]
+print("".join(["#"]*50)+f"\n CHANGE IN BN NETWORKS \n"+"".join(["#"]*50)+f"\n time = {times[0]} vs. {times[1]}\n"+"".join(["#"]*50)+f"\n s_ext = {s_ext}\n"+"".join(["#"]*50))
 s_ext = 4
-print("".join(["#"]*50)+f"\n time = {ttt}\n"+"".join(["#"]*50)+f"\n s_ext = {s_ext}\n"+"".join(["#"]*50))
-print(" & ".join(["", "compliant", "resilient & cohen's $d$", "resistant & cohen's $d$"]))
-
-ds["energy"] = ds["personalBN_energy"] + ds["social_energy"] + ds["external_energy"]
-ds["personalBN_nonfocal_energy"] = ds["personalBN_energy"] - ds["personalBN_focal_energy"] + ds["external_energy"]
-for metric in all_metrics:
-    # print("".join(["#"]*3)+f" {metric}")
-    metricvals = (
-        ds
-        .sel(adaptive=1, time=t, s_ext=s_ext)[[metric, "response_type"]]
-        .to_dataframe()
-        .reset_index()
-    )
-    a = (
-        metricvals
-        .groupby("response_type")[metric]
-        .agg(mean="mean", sd="std", count="count")
-        .rename(columns={"mean":metric})
-        .reset_index()
-    )
-    a["response_type"] = a["response_type"].map(response_map_inv)
-    #display(a)
-    print(f"{metric2title[metric]} &  ", end="")
-    for r in ["compliant", "resilient", "resistant"]:
-        group = metricvals[metricvals["response_type"] == response_map[r]][metric]
-        compl = metricvals[metricvals["response_type"] == response_map["compliant"]][metric]    
-        def cohens_d(a, b):
-            return (a.mean() - b.mean()) / ((a.var() + b.var()) / 2) ** 0.5
-        def cohens_d_glass(a, b):
-            return (a.mean() - b.mean()) / ((b.var())) ** 0.5
-        stat, p = ttest_ind(group, compl, equal_var=False)
-        print(f"${a.loc[a.response_type==r, metric].values[0]:.2f} \pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$ {fr'$^*$' if p<0.05 else ''}" + ("" if r=="compliant" else fr" & ${cohens_d(group, compl):.1f}$"), end=" & ")
-        
-        if r=="resistant":
-            resil = metricvals[metricvals["response_type"] == response_map["resilient"]][metric]    
-            print(fr" ${cohens_d(group, resil):.1f}$ ", end=" & ")
-    print("\\\\")
-print(f"proportion & ", end="")
-sum = np.sum([a.loc[a.response_type==r, "count"].values[0] for r in ["compliant", "resilient", "resistant"]])
-for r in ["compliant", "resilient", "resistant"]:#a.response_type.unique():
-    print(f"${(a.loc[a.response_type==r, "count"].values[0]/sum)*100:.1f}"+ "\\,\\%$", end=" & ")
-print("\\\\")
-for _ in range(5):
-    print("")
-
 for metric in BNmetrics:
     aaa = []
-    print(f"{metric2title[metric]} & ", end="")
-    for t in [94.5, 194.5]:
+    print(f"{metric2titleVerb[metric]} & {metric2title[metric]} & ", end="")
+    for t in times:
         a = (
                 ds
                 .sel(adaptive=1, time=t, s_ext=s_ext)[[metric, "response_type"]]
@@ -477,9 +708,16 @@ for metric in BNmetrics:
         aaa.append(a)
     
     for r in ["compliant", "resilient", "resistant"]:
-        for a in aaa:
-            print(f"${a.loc[a.response_type==r, metric].values[0]:.2f} \pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$", end=" & ")        
+        # for a in aaa:
+        #     print(f"${a.loc[a.response_type==r, metric].values[0]:.2f} \\pm {a.loc[a.response_type==r, "sd"].values[0]:.2f}$", end=" & ")        
+        print(f"${(aaa[1].loc[a.response_type==r, metric].values[0] / aaa[0].loc[a.response_type==r, metric].values[0]):.2f}$", end=" & ")        
     print("\\\\")
+print(f"proportion & & ", end="")
+for r in ["compliant", "resilient", "resistant"]:#a.response_type.unique():
+    if r in a.response_type.values:
+        sum = np.sum([0 if rr not in a["response_type"].values else a.loc[a.response_type==rr, "count"].values[0] for rr in ["compliant", "resilient", "resistant"]])
+        print(f"${(a.loc[a.response_type==r, "count"].values[0]/sum)*100:.1f}"+ "\\,\\%$", end=" & ")
+print(" & \\\\")
 
 #%% 
 s_ext = 4
@@ -683,7 +921,7 @@ if further_plots:
 
             ax.set_ylim(-1.15,1.15)
         fig.subplots_adjust(left=0.09, top=0.93, right=0.98, bottom=0.13)
-        plt.savefig( f"figs/focalBeliefsOverTime_{condition_string}{'_T300' if ts[-1]>200 else ''}.png")
+        plt.savefig( f"figs/focalBeliefsOverTime_{condition_string}{'_T300' if ts[-1]>200 else ''}.png", dpi=600)
 
 # %%
 # ----------------------------------------------

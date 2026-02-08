@@ -111,7 +111,7 @@ for p in  [0.05, 0.1, 0.2, 0.5]:
         dff = pd.DataFrame(countResponses)
         dff = dff.sort_values(["adaptiveness","s_ext", "beta", "response"])
         dff["normalized_count"] = dff["count"] / (len(ds.seed) * len(ds.agent_id))
-        dff["response"] = dff["response"].replace("NA", np.nan)
+        dff["response"] = dff["response"].replace("NA", 99)
         df = dff.dropna().copy()
         grouped = (
             df.groupby(["adaptiveness", "s_ext", "beta",  "response"])["normalized_count"].sum().reset_index()
@@ -122,7 +122,7 @@ for p in  [0.05, 0.1, 0.2, 0.5]:
         width = 0.15
         offsets = [-2.*width, -1.*width, -0*width, 1.*width, 2.*width] if len(betas)==5 else [-1.*width, -0*width, 1.*width]
 
-        responsesNames = ['persistent-positive', 'non-persistent-positive', 'compliant', 'late-compliant', 'resilient', 'resistant']
+        responsesNames = ['persistent-positive', 'non-persistent-positive', 'compliant', 'late-compliant', 'resilient', 'resistant']+["NA"]
         for b, off in zip(betas, offsets):
             tmp = (
                 grouped[grouped["beta"] == b]
@@ -155,7 +155,7 @@ for p in  [0.05, 0.1, 0.2, 0.5]:
                 patch.set_x(patch.get_x() + off - width/2)
         if ax==axs[0,-1]:
             ax.text( ns+0.07,1.23, "focal std", fontsize=smallfs-1, va="bottom", ha="center")
-            ax.annotate(r"before", (ns+off,std), (ns-0.25,1.1), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3"), bbox=dict(pad=0.0,fc='none', ec='none', color=colBefore), color=colBefore)
+            ax.annotate(r"before", (ns+off,std), (ns-0.25,1.1), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3", color=colBefore), bbox=dict(pad=0.0,fc='none', ec='none', color=colBefore), color=colBefore)
             ax.annotate(r"after", (ns+off,stdPost), (ns+0.3,1.1), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3", color=colAfter), bbox=dict(pad=0.0,fc='none', ec='none'), color=colAfter)
         ax.set_xlim(-0.5, 2.5)
         ax.set_ylim(0,1)
@@ -289,7 +289,9 @@ for row, adaptivefixed in enumerate([(0.0,0.0), (1.0,0.005)]):
             currdff = dff.loc[dff.name==name]
             currdff = currdff.sort_values([name])
             currdff["normalized_count"] = currdff["count"] / (len(ds.seed) * len(ds.agent_id))
-            currdff["response"] = currdff["response"].replace("NA", np.nan)
+            if np.nan in currdff:
+                print("hi")
+            currdff["response"] = currdff["response"].replace("NA", "NA")
             df = currdff.dropna().copy()
             grouped = (
                 df.groupby([name,  "response"])["normalized_count"].sum().reset_index()
@@ -322,7 +324,7 @@ for row, adaptivefixed in enumerate([(0.0,0.0), (1.0,0.005)]):
                             yerr=stdposterr,marker="d", color=colAfter, lw=1, markersize=3)
             if ax==axs[0,-1]:
                 ax.text( ns+0.07,1.18, "focal std", fontsize=smallfs-1, va="bottom", ha="center")
-                ax2.annotate(r"before", (ns,std), (ns-1,2.17), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3"), bbox=dict(pad=0.0,fc='none', ec='none', color=colBefore), color=colBefore)
+                ax2.annotate(r"before", (ns,std), (ns-1,2.17), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.3", color=colBefore), bbox=dict(pad=0.0,fc='none', ec='none', color=colBefore), color=colBefore)
                 ax2.annotate(r"after", (ns,stdpost), (ns+0.7,2.17), fontsize=smallfs-1, va="bottom", ha="center", arrowprops=dict(arrowstyle="-", connectionstyle="arc3,rad=-.2", color=colAfter), bbox=dict(pad=0.0,fc='none', ec='none'), color=colAfter)
             if ax==axs[0,-1]:
                 ax2.set_ylabel("focal belief standard deviation (dots)", y=-0.1)
