@@ -499,12 +499,14 @@ def run_one(seed, link_prob, init_w, beta, rho, eps, mu, fixedBNat100, ext_stren
         + "_".join(
             [
                 (
-                    f"{k}{v}"
+                    f"{k}{v}"  # integer params
                     if k in ["seed", "ext_strength"]
                     else (
                         f"{k}{v:.3f}"
-                        if k == "mu" and mu != 0
-                        else (f"{k}{v:.2f}" if k != "fixedBNat100" or k else "")
+                        if k == "mu"
+                        else (
+                            (k if v else "") if k == "fixedBNat100" else f"{k}{v:.2f}"
+                        )
                     )
                 )
                 for k, v in params.items()
@@ -538,7 +540,6 @@ if __name__ == "__main__":
     mu = 0.0
     ext_strength = 4
     fixedBNat100 = False
-    # seed=98
 
     param_combis = [
         [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
@@ -549,13 +550,11 @@ if __name__ == "__main__":
             (0.2, 1.0, 0.0, False),
         ]
     ]
-    sexts = [0, 1, 2, 4, 8, 16]
+    pressures = [0, 1, 2, 4, 8, 16]
 
-    # param_combis = [
-    #     [link_prob, init_w, beta, rho, eps, mu, fixedBNat100] for mu in [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5] for eps in [0.5,1.0]]
-    # sexts = [4]
-
-    param_combis = [p + [ext_strength] for p in param_combis for ext_strength in sexts]
+    param_combis = [
+        p + [ext_strength] for p in param_combis for ext_strength in pressures
+    ]
 
     detail = False
     track_times = (
@@ -570,7 +569,7 @@ if __name__ == "__main__":
         + ((during2Range + after2Range + [300]) if two_external_events else [])
     )
 
-    seeds = list(range(0, 5))
+    seeds = list(range(0, 20))
     if detail and len(seeds) > 10:
         print("...this will take very long")
         quit()

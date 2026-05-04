@@ -143,10 +143,11 @@ mean_absedges = []
 init_w, eps, mu, fixedBNat100 = (0.2, 1.0, 0.0, False)
 res = pd.DataFrame()
 all_pressures = [1, 2, 4, 8, 16]
+seeds = list(range(20))
 for s in all_pressures:
-    for seed in range(100):
+    for seed in seeds:
         df = pd.read_csv(
-            f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.2f}{'_fixedBNat100' if fixedBNat100 else ''}_ext_strength{s}_seed{seed}.csv"
+            f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNat100' if fixedBNat100 else ''}_ext_strength{s}_seed{seed}.csv"
         )
         W = df.loc[df.t == 100, edges_columns].values
         dists = pdist(W, metric="cityblock")
@@ -540,9 +541,12 @@ if showRegression:
 fig.subplots_adjust(
     left=0.2, top=0.82 if showRegression else 0.92, right=0.98, bottom=0.12
 )
-fname = f"2026-04_figs/fig4_mu{mu}{
-names[(init_w,eps,mu,fixedBNat100)] if eps!=1 else ''}"
+fname = (
+    f"2026-04_figs/fig4_mu{mu}{names[(init_w,eps,mu,fixedBNat100)] if eps!=1 else ''}"
+)
 
+if not os.path.isdir(fname.split("/")[0]):
+    os.mkdir(fname.split("/")[0])
 print(fname)
 plt.savefig(fname + ".png", dpi=600)
 plt.savefig(fname + ".pdf")

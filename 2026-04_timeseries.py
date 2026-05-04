@@ -60,7 +60,7 @@ fixedBNat100 = False
 seed = 2
 s = 4
 df = pd.read_csv(
-    f"simOut/detailed/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.2f}_ext_strength{s}_seed{seed}_detailed.csv"
+    f"simOut/detailed/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}_ext_strength{s}_seed{seed}_detailed.csv"
 )
 
 # %%
@@ -404,6 +404,8 @@ for adaptive, w0 in zip([True], [0.2]):
         fontsize=smallfs,
     )
 fname = f"2026-04_figs/fig2" + ("_" + names[(init_w, eps, mu, fixedBNat100)])
+if not os.path.isdir(fname.split("/")[0]):
+    os.mkdir(fname.split("/")[0])
 plt.savefig(fname + ".png", dpi=600)
 
 print(

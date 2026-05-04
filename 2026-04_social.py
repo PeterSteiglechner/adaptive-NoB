@@ -172,11 +172,8 @@ for init_w, eps, mu, fixedBNatt100 in [
     print(init_w, eps, mu, fixedBNatt100)
     for s in pressures:
         for seed in range(100):
-            mustring = (
-                f"{mu:.3f}" if float(f"{mu:.3f}") != float(f"{mu:.2f}") else f"{mu:.2f}"
-            )
             df = pd.read_csv(
-                f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mustring}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}.csv"
+                f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}.csv"
             )
             W = df.loc[df.t == 100, edges_columns].values
             nr_neg_edges = np.sum(W.flatten() < 0)
@@ -248,7 +245,7 @@ metrics = metrics.drop(columns=["Hpers"])
 fig, axs = plt.subplots(3, 1, sharex=True, sharey=False, figsize=(16 / 2.54, 8 / 2.54))
 for row, mu in enumerate([0.0, 0.005, 0.05]):
     df = pd.read_csv(
-        f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.2f}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}.csv"
+        f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}.csv"
     ).query("t==100")
     sns.kdeplot(
         df[edges_columns],
@@ -316,7 +313,7 @@ for i in range(8):
 
         df = pd.read_csv(
             f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33"
-            f"_eps{eps:.2f}_mu{mu:.2f}{'_fixedBNatt1001.00' if fixedBNatt100 else ''}"
+            f"_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNatt1001.00' if fixedBNatt100 else ''}"
             f"_ext_strength{s}_seed{seed}.csv"
         )
 
@@ -534,7 +531,10 @@ for n, key in enumerate(["a0", "b0", "metric", "mu"]):
         transform=axs[key].transAxes,
     )
 
-plt.savefig(f"2026-04_figs/fig5_social.png", dpi=600)
+fname = f"2026-04_figs/fig5_social.png"
+if not os.path.isdir(fname.split("/")[0]):
+    os.mkdir(fname.split("/")[0])
+plt.savefig(fname, dpi=600)
 
 # %%
 plt.figure()

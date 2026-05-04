@@ -67,37 +67,40 @@ res = []
 # M N initw eps mu beta p s responsFreq
 
 mean_absedges = []
+pressure = 4
 param_combis = (
     [
-        ["base", 10, 100, w, eps, mu, 3.0, 0.1, 1, 4]
+        ["base", 10, 100, w, eps, mu, 3.0, 0.1, 1, pressure]
         for w, eps, mu in [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
     ]
     + [
-        ["M", M, 100, w, eps, mu, 3.0, 0.1, 1, 4]
+        ["M", M, 100, w, eps, mu, 3.0, 0.1, 1, pressure]
         for w, eps, mu in [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
         for M in [5, 15]
     ]
     + [
-        ["N", 10, N, w, eps, mu, 3.0, p, 1, 4]
+        ["N", 10, N, w, eps, mu, 3.0, p, 1, pressure]
         for w, eps, mu in [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
         for N, p in zip([50, 200], [0.2, 0.05])
     ]
     + [
-        ["beta", 10, 100, w, eps, mu, beta, 0.1, 1, 4]
+        ["beta", 10, 100, w, eps, mu, beta, 0.1, 1, pressure]
         for w, eps, mu in [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
         for beta in [1.5, 6.0]
     ]
     + [
-        ["p", 10, 100, w, eps, mu, 3.0, p, 1, 4]
+        ["p", 10, 100, w, eps, mu, 3.0, p, 1, pressure]
         for w, eps, mu in [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
         for p in [0.05, 0.2]
     ]
     + [
-        ["tau", 10, 100, w, eps, mu, 3.0, 0.1, tau, 4]
+        ["tau", 10, 100, w, eps, mu, 3.0, 0.1, tau, pressure]
         for w, eps, mu in [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
         for tau in [2.0, 10.0]
     ]
 )
+fixedBNatt100 = False
+
 for exp, M, N, init_w, eps, mu, beta, p, tau, s in param_combis:
     print(exp, end=",")
     for seed in range(100):
@@ -111,7 +114,7 @@ for exp, M, N, init_w, eps, mu, beta, p, tau, s in param_combis:
             )
         )
         df = pd.read_csv(
-            f"simOut/sim_link_prob{p:.2f}_init_w{init_w:.2f}_beta{beta:.2f}_rho0.33_eps{eps:.2f}_mu{mu:.2f}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}{addon}.csv"
+            f"simOut/sim_link_prob{p:.2f}_init_w{init_w:.2f}_beta{beta:.2f}_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}{addon}.csv"
         )
         res.append(
             [
