@@ -1,6 +1,6 @@
-# ANB Model — Adaptive Narrative Belief Simulation
+# ANB Model — Adaptive Networks of Beliefs
 
-Simulation code accompanying the 2026 paper on Belief Network (BN) adaptiveness configurations.
+Simulation code accompanying our recent project on Adaptive Networks of Beliefs (ANB)
 
 ## Setup & Run
 
