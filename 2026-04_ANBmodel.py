@@ -20,7 +20,7 @@ focal = 0
 n_agents = 100
 tau = 1
 ext_belief = focal
-fixedBNafterBurnIn = False
+fixedBNat100 = False
 two_external_events = False
 lam = 0.0
 ext_time = list(np.arange(101, 151)) + (
@@ -44,7 +44,7 @@ params_fixed = dict(
     beforeRange=[beforeRange[0], beforeRange[-1]],
     duringRange=[duringRange[0], duringRange[-1]],
     afterRange=[afterRange[0], afterRange[-1]],
-    fixedBNafterBurnIn=fixedBNafterBurnIn,
+    fixedBNat100=fixedBNat100,
     during2Range=(
         [during2Range[0], during2Range[-1]] if two_external_events else [None, None]
     ),
@@ -441,7 +441,7 @@ def run_simulation(params):
             agents[n] = update_belief(
                 agents[n], curr_ext_strength, beta, rho, summed_social_beliefs
             )
-            if fixedBNafterBurnIn and (t >= ext_time[0]):
+            if fixedBNat100 and (t >= ext_time[0]):
                 pass
             else:
                 mu_c = 0 if len(nb_list[n]) == 0 else mu
@@ -503,7 +503,7 @@ def run_one(seed, link_prob, init_w, beta, rho, eps, mu, fixedBNat100, ext_stren
                     else (
                         f"{k}{v:.3f}"
                         if k == "mu" and mu != 0
-                        else (f"{k}{v:.2f}" if k != "fixedBNat100" or v else "")
+                        else (f"{k}{v:.2f}" if k != "fixedBNat100" or k else "")
                     )
                 )
                 for k, v in params.items()

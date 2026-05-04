@@ -403,7 +403,7 @@ for adaptive, w0 in zip([True], [0.2]):
         f"example simulation with {namesTex[(init_w,eps,mu,False)]} belief networks",
         fontsize=smallfs,
     )
-fname = f"fig2" + ("_" + names[(init_w, eps, mu, fixedBNat100)])
+fname = f"2026-04_figs/fig2" + ("_" + names[(init_w, eps, mu, fixedBNat100)])
 plt.savefig(fname + ".png", dpi=600)
 
 print(
