@@ -533,12 +533,12 @@ def run_one(seed, link_prob, init_w, beta, rho, eps, mu, fixedBNat100, ext_stren
 # Main execution
 if __name__ == "__main__":
     link_prob = 10 / n_agents
-    init_w = 0.2
+    # init_w = 0.2
     beta = 3.0
     rho = 1.0 / 3.0
-    eps = 1.0
-    mu = 0.0
-    ext_strength = 4
+    # eps = 1.0
+    # mu = 0.0
+    # ext_strength = 4
     fixedBNat100 = False
 
     param_combis = [
@@ -556,6 +556,8 @@ if __name__ == "__main__":
         p + [ext_strength] for p in param_combis for ext_strength in pressures
     ]
 
+    seeds = list(range(0, 20))  ## TODO increase
+
     detail = False
     track_times = (
         np.arange(T + 1)
@@ -569,7 +571,6 @@ if __name__ == "__main__":
         + ((during2Range + after2Range + [300]) if two_external_events else [])
     )
 
-    seeds = list(range(0, 20))
     if detail and len(seeds) > 10:
         print("...this will take very long")
         quit()

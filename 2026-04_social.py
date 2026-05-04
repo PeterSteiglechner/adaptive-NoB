@@ -164,16 +164,25 @@ cmap = dict(
 pressures = [4]
 res = []
 metrics = pd.DataFrame()
-for init_w, eps, mu, fixedBNatt100 in [
-    (0.2, eps, mu, False)
+
+link_prob = 0.1
+beta = 3.0
+rho = 1.0 / 3.0
+init_w = 0.2
+fixedBNat100 = False
+param_combis = [
+    [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
     for mu in [0.0, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
     for eps in [0.5, 1.0]
-]:
-    print(init_w, eps, mu, fixedBNatt100)
+]
+
+
+for link_prob, init_w, beta, rho, eps, mu, fixedBNat100 in param_combis:
+    print(init_w, eps, mu, fixedBNat100)
     for s in pressures:
         for seed in range(100):
             df = pd.read_csv(
-                f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}.csv"
+                f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNat100' if fixedBNat100 else ''}_ext_strength{s}_seed{seed}.csv"
             )
             W = df.loc[df.t == 100, edges_columns].values
             nr_neg_edges = np.sum(W.flatten() < 0)
@@ -200,7 +209,7 @@ for init_w, eps, mu, fixedBNatt100 in [
             metrics = pd.concat([metrics, vals])
 
             res.append(
-                [seed, init_w, eps, mu, s, fixedBNatt100, f"eps{eps}_mu{mu}"]
+                [seed, init_w, eps, mu, s, fixedBNat100, f"eps{eps}_mu{mu}"]
                 + df.loc[df.t == 95.5][response_cols]
                 .sum(axis=0)[response_cols]
                 .to_list()
@@ -209,7 +218,7 @@ for init_w, eps, mu, fixedBNatt100 in [
             )
 res = pd.DataFrame(
     res,
-    columns=["seed", "init_w", "eps", "mu", "s_ext", "fixedBNatt100", "name"]
+    columns=["seed", "init_w", "eps", "mu", "s_ext", "fixedBNat100", "name"]
     + response_cols
     + [
         "groupishness",
@@ -227,7 +236,7 @@ for c in [
     "mu",
     "init_w",
     "s_ext",
-    "fixedBNatt100",
+    "fixedBNat100",
     "seed",
     "groupishness",
     "nr_negative_edges",
@@ -245,7 +254,7 @@ metrics = metrics.drop(columns=["Hpers"])
 fig, axs = plt.subplots(3, 1, sharex=True, sharey=False, figsize=(16 / 2.54, 8 / 2.54))
 for row, mu in enumerate([0.0, 0.005, 0.05]):
     df = pd.read_csv(
-        f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNatt100' if fixedBNatt100 else ''}_ext_strength{s}_seed{seed}.csv"
+        f"simOut/sim_link_prob{link_prob:.2f}_init_w{init_w:.2f}_beta{beta:.2f}_rho{rho:.2f}_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNat100' if fixedBNat100 else ''}_ext_strength{s}_seed{seed}.csv"
     ).query("t==100")
     sns.kdeplot(
         df[edges_columns],
@@ -254,7 +263,7 @@ for row, mu in enumerate([0.0, 0.005, 0.05]):
         alpha=0.4,
     )
     axs[row].set_title(
-        f"$\mu={mu}$",
+        rf"$\mu={mu}$",
         x=0.99,
         ha="right",
         y=0.8,
@@ -312,8 +321,8 @@ for i in range(8):
         ax.axis("off")
 
         df = pd.read_csv(
-            f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33"
-            f"_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNatt1001.00' if fixedBNatt100 else ''}"
+            f"simOut/sim_link_prob{link_prob:.2f}_init_w{init_w:.2f}_beta{beta:.2f}_rho{rho:.2f}"
+            f"_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNat1001.00' if fixedBNat100 else ''}"
             f"_ext_strength{s}_seed{seed}.csv"
         )
 
