@@ -534,7 +534,7 @@ for n, key in enumerate(["a0", "b0", "metric", "mu"]):
         transform=axs[key].transAxes,
     )
 
-plt.savefig(f"2026-04_figs/fig5_social{'_withGroupishness'}.png", dpi=600)
+plt.savefig(f"2026-04_figs/fig5_social.png", dpi=600)
 
 # %%
 plt.figure()
@@ -575,9 +575,7 @@ sns.lineplot(
     errorbar="sd",
     label="tb_tot",
 )
-# sns.lineplot(res.loc[res.eps==eps], x="mu", color="#2ECC40", y="groupishness", marker="o", errorbar="sd", label="groupishness")
 
-# plt.xscale("log")
 plt.legend()
 plt.xlim(0, 0.1)
 

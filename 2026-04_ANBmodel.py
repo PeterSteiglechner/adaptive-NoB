@@ -471,10 +471,11 @@ def run_simulation(params):
 
 def run_one(seed, link_prob, init_w, beta, rho, eps, mu, fixedBNat100, ext_strength):
 
-    results_folder = (
-        f"{time.gmtime().tm_year}-{time.gmtime().tm_mon:02d}-{time.gmtime().tm_mday:02d}"
-        + "_simOut/"
-    )
+    # results_folder = (
+    #     f"{time.gmtime().tm_year}-{time.gmtime().tm_mon:02d}-{time.gmtime().tm_mday:02d}"
+    #     + "_simOut/"
+    # )
+    results_folder = "simOut/"
     if not os.path.isdir(results_folder):
         os.mkdir(results_folder)
     if detail and not os.path.isdir(results_folder + "detailed/"):
@@ -556,7 +557,7 @@ if __name__ == "__main__":
 
     param_combis = [p + [ext_strength] for p in param_combis for ext_strength in sexts]
 
-    detail = True
+    detail = False
     track_times = (
         np.arange(T + 1)
         if detail
@@ -569,7 +570,7 @@ if __name__ == "__main__":
         + ((during2Range + after2Range + [300]) if two_external_events else [])
     )
 
-    seeds = list(range(0, 100))
+    seeds = list(range(0, 5))
     if detail and len(seeds) > 10:
         print("...this will take very long")
         quit()
