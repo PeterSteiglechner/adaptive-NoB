@@ -5,12 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "igraph>=1.0.0",
+    "ipykernel>=7.2.0",
     "joblib>=1.5.3",
     "matplotlib>=3.10.9",
+    "netcdf4>=1.7.4",
     "networkx>=3.6.1",
     "pandas>=3.0.2",
     "scikit-learn>=1.8.0",
     "scipy>=1.17.1",
     "seaborn>=0.13.2",
     "statsmodels>=0.14.6",
+    "xarray>=2026.4.0",
 ]

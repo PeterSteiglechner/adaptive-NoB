@@ -5,4 +5,4 @@ processed_data
 sims
 .venv
 .DS_Store
-venv
+venv*

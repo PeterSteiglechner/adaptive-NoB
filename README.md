@@ -29,6 +29,7 @@ For testing, choose a smaller number of random seeds.
 
 Detailed mode stores all time steps.
 
+
 ## Analysis Pipeline
 
 Run scripts in order after simulations (with settings as in the table above) are complete:
@@ -37,6 +38,6 @@ Run scripts in order after simulations (with settings as in the table above) are
 2. **`2026-04_analyseResponses.py`** — Single simulation with external pressure + ensemble response frequencies across BN configurations
 3. **`2026-04_metric.py`** — Table and figure of agent-level metrics (belief networks, belief content, social embeddedness, dissonance)
 4. **`2026-04_social.py`** — Response frequencies and BN changes under varying social adaptation
-   - ⚠️ Requires additional simulations — use the `param_combis` list in this file to run with `mu > 0`. Set `pressures = [4]` and `detail = False`,
+   - ⚠️ Requires additional simulations — use the `param_combis` list in this file to run with `mu > 0`. Set `pressures = [4]` and `detail = False`.
 5. **`2026-04_sa.py`** — Sensitivity analysis: response frequencies under one-at-a-time parameter variation
    - ⚠️ Requires additional simulations — vary `beta`, `link_prob`, `M`, `N`, and `tau` separately. Set `mu = 0`, `pressures = [4]`, and `detail = False`.

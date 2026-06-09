@@ -98,7 +98,7 @@ metric2title = dict(
     tb_tot=r"BN-$\alpha$",
     tb_foc=r"BN-$\alpha_{foc}$",
     clust=r"BN-clust",
-    bc=r"BN-centr$_{foc}$",
+    bc_foc=r"BN-centr$_{foc}$",
     # bn_expected_influence = r"$\langle\delta x_{foc}\rangle$",
     Hpersfoc=r"$D_\mathrm{BN\text{-}foc}$",
     Hpersnonfoc=r"$D_\mathrm{BN\text{-}non\text{-}foc}$",
@@ -115,7 +115,7 @@ metric2titleVerb = dict(
     tb_tot=r"balance BN",
     tb_foc=r"balance focal BN",
     clust=r"clustering BN",
-    bc=r"BN focal centrality",
+    bc_foc=r"BN focal centrality",
     # bn_expected_influence = r"expected influence focal",
     Hpersfoc=r"focal BN dissonance",
     Hpersnonfoc=r"non-focal BN dissonance",
@@ -148,7 +148,7 @@ metric_cols = [
     "absOm_tot",
     "absOm_foc",
     "clust",
-    "bc",
+    "bc_foc",
     "expI",
     "x_focal",
     "extr_nonfoc",
@@ -173,7 +173,7 @@ fixedBNat100 = False
 param_combis = [
     [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
     for mu in [0.0, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
-    for eps in [0.5, 1.0]
+    for eps in [1.0]
 ]
 
 
@@ -184,6 +184,7 @@ for link_prob, init_w, beta, rho, eps, mu, fixedBNat100 in param_combis:
             df = pd.read_csv(
                 f"simOut/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNat100' if fixedBNat100 else ''}_ext_strength{s}_seed{seed}.csv"
             )
+            #df = df.rename(columns={"bc":"bc_foc"})
             W = df.loc[df.t == 100, edges_columns].values
             nr_neg_edges = np.sum(W.flatten() < 0)
             dists = pdist(W, metric="euclidean")
@@ -251,8 +252,8 @@ metrics = metrics.drop(columns=["Hpers"])
 
 # %%
 
-fig, axs = plt.subplots(3, 1, sharex=True, sharey=False, figsize=(16 / 2.54, 8 / 2.54))
-for row, mu in enumerate([0.0, 0.005, 0.05]):
+fig, axs = plt.subplots(3, 1, sharex=True, sharey=False, figsize=(12 / 2.54, 6 / 2.54))
+for row, mu in enumerate([0.0, 0.005, 0.1]):
     df = pd.read_csv(
         f"simOut/sim_link_prob{link_prob:.2f}_init_w{init_w:.2f}_beta{beta:.2f}_rho{rho:.2f}_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNat100' if fixedBNat100 else ''}_ext_strength{s}_seed{seed}.csv"
     ).query("t==100")
@@ -269,14 +270,17 @@ for row, mu in enumerate([0.0, 0.005, 0.05]):
         y=0.8,
         va="top",
     )
-    axs[row].set_xlabel(r"edge weights $\omega_{m,n}$ at $t=100$")
+    axs[row].set_xlabel(r"edge weights $\omega_{mn}$ at $t=100$")
 
     axs[row].set_ylabel(r"Density" if row == 1 else "")
     axs[row].set_yticks([])
     axs[row].vlines(
         init_w, 0, axs[row].get_ylim()[1], color="grey", zorder=-1, linestyles="--"
     )
-plt.savefig("2026-04_figs/sa_edgeweight distributions")
+    axs[row].set_xlim(-6,6)
+axs[-1].text(0.02,0.95, r"each color = one pair of beliefs $(m,n)$", fontsize=smallfs, va="top", ha="left", transform=axs[-1].transAxes)
+fig.subplots_adjust(bottom=0.15, left=0.05, right=0.97, top=0.97)
+plt.savefig("2026-04_figs/sa_edgeweight distributions.png", dpi=300)
 # %%
 # %%
 
@@ -410,7 +414,7 @@ for m in selected_metrics:
         err_kws={"alpha": 0.1},
     )
 
-ax_metric.legend(loc="best", ncols=2)
+ax_metric.legend(loc="lower center", ncols=2)
 ax_metric.set_ylim(-2, 2)
 ax_metric.set_yticks([-2, -1, 0, 1, 2])
 ax_metric.set_ylabel("metric value (z-score)")
@@ -454,6 +458,7 @@ sns.stripplot(
 
 
 ax_mu.get_legend().set_title("")
+ax_mu.get_legend().set_loc("center right")
 ax_mu.set_ylabel("relative response frequency")
 ax_mu.set_xlabel(r"social adaptation $\mu$ (log-scale)")
 ax_mu.set_ylim(-0.05, 1.05)

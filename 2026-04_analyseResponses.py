@@ -462,3 +462,129 @@ pd.DataFrame(
 ).groupby("name").absOm_tot.mean()
 
 # %%
+
+seed_for_agents = 14
+np.random.seed(seed_for_agents)
+seedExample = 1
+pressurestrengthExample = 4
+T = 200
+
+fig, axs = plt.subplots(2,3, sharex=True, sharey=True, figsize=(16/2.54, 8/2.54))
+for pressurestrengthExample, ax in zip([0,1,2,4,8,16], axs.flatten()):
+    ax_main = ax
+    examplesimadaptive = pd.read_csv(
+        f"simOut/detailed/sim_link_prob0.10_init_w{init_w:.2f}_beta3.00_rho0.33_eps{eps:.2f}_mu{mu:.3f}_{'fixedBNat100_' if fixedBNat100 else ''}ext_strength{pressurestrengthExample}_seed{seedExample}_detailed.csv"
+    )
+    beliefs = examplesimadaptive[["id", "t"] + ["0"]].pivot_table(
+        index="t", columns="id", values="0"
+    )
+    s_ext = examplesimadaptive.ext_strength.unique()[0]
+    window = 0
+    dff = beliefs.reset_index().melt(
+        id_vars=["t"],
+    )
+    if window > 0:
+        dff["belief_smooth"] = dff.groupby("id")["value"].transform(
+            lambda x: x.rolling(window, min_periods=1).mean()
+        )
+    else:
+        dff["belief_smooth"] = dff["value"]
+    df_pivot = dff.pivot(index="t", columns="id", values="belief_smooth")
+    df_pivot = df_pivot.loc[df_pivot.index <= T]
+    for aaa in df_pivot.columns:
+        df_pivot[aaa].plot(
+            ax=ax_main,
+            lw=0.6,
+            alpha=0.2,
+            legend=False,
+            color=(
+                0.8 - 0.5 * aaa / 100,
+                0.8 - 0.5 * aaa / 100,
+                0.8 - 0.5 * aaa / 100,
+                1,
+            ),
+        )
+    agents = dict(zip(["resistant", "resilient", "compliant"], [None, None, None]))
+    for name in ["resistant", "resilient", "compliant"]:
+        i = examplesimadaptive.loc[examplesimadaptive[name] == 1, "id"]
+        if len(i) > 0:
+            i = agents[name] if agents[name] else i.sample().values
+            print(name, i)
+            df_pivot.loc[:, i].plot(
+                ax=ax_main,
+                lw=1,
+                ls="-",
+                color=cmap[name],
+                alpha=0.8,
+                legend=False,
+                label="_",
+            )
+    ax_main.set_xlabel("time")
+    ax_main.set_ylabel(r"focal belief $x_\mathrm{foc}$", va="center")
+    ax_main.set_clip_on(False)
+    ax_main.set_xlim(0, T)
+    ax_main.set_ylim(-1.02, 1.02)
+    ax_main.set_yticks([-1, 0, 1])
+    if s_ext > 0:
+        # ["#640000", "#850000", "#B20000", "#DE0000", "#FF0000"]
+        int_colors = dict(zip([1, 2, 4, 8, 16], [0.1, 0.175, 0.25, 0.325, 0.4]))
+        y0, y1 = ax_main.get_ylim()
+        xx = [100, 150]
+        xx = [ttt for ttt in xx if ttt <= T]
+        if len(xx) > 0:
+            ax_main.fill_between(
+                xx,
+                [y0] * len(xx),
+                [y1] * len(xx),
+                color="red",
+                alpha=int_colors[s_ext],
+                zorder=-1,
+                lw=0,
+            )
+    if pressurestrengthExample==16:
+        ax_main.text(125, -0.7, "external\npressure", ha="center", fontsize=bigfs)
+    if pressurestrengthExample>0:
+        ax_main.text(125, -0.1, r"$\uparrow$", ha="center", fontsize=bigfs + 12)
+    ax_main.text(
+        0.5,
+        1.02,
+        rf"$s="
+        + f"{s_ext}{'$, smoothed' if window>0 else '$'}",
+        transform=ax_main.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=bigfs,
+    )
+    # fig.set_facecolor("pink")
+
+    if pressurestrengthExample==4:
+        ax_main.text(
+            90,
+            -0.2,
+            "agents with\n" + r"$x_\mathrm{foc}<0$",
+            va="center",
+            ha="right",
+            fontsize=bigfs,
+        )
+        e1 = mpl.patches.Arc(
+            (95.5, -0.7), 10, 1.4, angle=0, linewidth=1, fill=False, zorder=10, color="k"
+        )
+        ax_main.add_patch(e1)
+    # axs["t"].fill_between([90,100],[-1,-1], [0,0], color="#ffda6799", edgecolor='none')
+
+import string
+
+for n, ax in enumerate(axs.flatten()):
+    ax.text(
+        0.0 if n == 0 else 0,
+        1.02,
+        string.ascii_uppercase[n],
+        fontsize=12,
+        fontdict={"weight": "bold"},
+        va="bottom",
+        ha="left",
+        transform=ax.transAxes,
+    )
+fig.subplots_adjust(left=0.06, right=0.98, bottom=0.12, top=0.93)
+plt.savefig(f"2026-04_figs/fig_exampleSim_adaptive_seed{seedExample}_overPressure.png", dpi=600)
+# %%

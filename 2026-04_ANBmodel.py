@@ -13,6 +13,7 @@ from scipy.sparse import csr_matrix
 import time
 from joblib import Parallel, delayed
 import multiprocessing
+import igraph as ig
 
 # FIXED PARAMETERS
 M = 10
@@ -89,7 +90,8 @@ metric_cols = [
     "absOm_tot",
     "absOm_foc",
     "clust",
-    "bc",
+    # "clust_foc",
+    "bc_foc",
     "expI",
     "x_focal",
     "extr_nonfoc",
@@ -264,22 +266,35 @@ def get_metrics(agents):
         A[:, i, j] = agents[:, edgeids][:, edge_lookup[(i, j)]]
         A[:, j, i] = A[:, i, j]
     absA = np.abs(A)
-    absA /= absA.max(axis=(1, 2), keepdims=True)
-    A_cubed_diag = np.einsum("aij,ajk,aki->ai", absA, absA, absA)
-    C = A_cubed_diag / ((M - 1) * (M - 2))
-    avg_weighted_clustering = C.mean(axis=1)
+    w_max = absA.max(axis=(1,2), keepdims=True)  # (n_agents, 1, 1)
+    absA_norm = absA /  w_max
+    absA_norm_power = absA_norm ** (1/3)
+    A_cubed_diag = np.einsum("aij,ajk,aki->ai", absA_norm_power, absA_norm_power, absA_norm_power) 
+    degrees = (absA > 0).sum(axis=2)  # (n_agents, M)
+    node_clustering = A_cubed_diag / (degrees * (degrees - 1))
+
+    avg_weighted_clustering = np.nanmean(node_clustering, axis=1)   # (n_agents,)
+    # focal_weighted_clustering = node_clustering[:, focal]            # (n_agents,)
 
     expected_influence = (A[:, focal, :] * agents[:, beliefids]).sum(axis=1)
 
     eps_val = 1e-6
-    bc = np.zeros(n_agents)
-    for a in range(n_agents):
-        G = nx.Graph()
-        for i, j in edge_list:
-            w = absA[a, i, j]
-            if w > 0:
-                G.add_edge(i, j, weight=1.0 / (w + eps_val))
-        bc[a] = nx.betweenness_centrality(G, weight="weight", normalized=True)[focal]
+    def bc_focal_for_agent(a):
+        g = ig.Graph(n=M, edges=edge_list, directed=False)
+        weights = [1.0 / (absA[a, i, j] + eps_val) if absA[a, i, j] > 0 else 1e9
+                for i, j in edge_list]
+        return g.betweenness(vertices=focal, weights=weights, directed=False)
+
+    bc_foc = np.array([bc_focal_for_agent(a) for a in range(n_agents)])
+
+    # bc = np.zeros(n_agents)
+    # for a in range(n_agents):
+    #     G = nx.Graph()
+    #     for i, j in edge_list:
+    #         w = absA[a, i, j]
+    #         if w > 0:
+    #             G.add_edge(i, j, dist=1.0 / (w + eps_val), weight=A[a,i,j])
+    #     bc[a] = nx.betweenness_centrality(G, weight="dist", normalized=False)[focal]
 
     return (
         tri_balance_tot,
@@ -287,7 +302,8 @@ def get_metrics(agents):
         bn_abs_meanedge_tot,
         bn_abs_meanedge_foc,
         avg_weighted_clustering,
-        bc,
+        # focal_weighted_clustering,
+        bc_foc,
         expected_influence,
     )
 
@@ -295,7 +311,7 @@ def get_metrics(agents):
 def fill_metrics(t, agents, nb_list, params):
     agents[:, 2] = [len(nbs) for nbs in nb_list]
     Hpers, Hpersfoc, Hsoc, Hext = get_energies(t, agents, nb_list, params)
-    tb_tot, tb_foc, absOm_tot, absOm_foc, clust, bc, expI = get_metrics(agents)
+    tb_tot, tb_foc, absOm_tot, absOm_foc, clust, bc_foc, expI = get_metrics(agents)
     agents[:, 3] = Hpers
     agents[:, 4] = Hpersfoc
     agents[:, 5] = Hsoc
@@ -305,7 +321,8 @@ def fill_metrics(t, agents, nb_list, params):
     agents[:, 9] = absOm_tot
     agents[:, 10] = absOm_foc
     agents[:, 11] = clust
-    agents[:, 12] = bc
+    # agents[:, 12] = clust_foc
+    agents[:, 12] = bc_foc
     agents[:, 13] = expI
     agents[:, 14] = agents[:, beliefids[focal]]
     agents[:, 15] = np.mean(
@@ -541,22 +558,40 @@ if __name__ == "__main__":
     # ext_strength = 4
     fixedBNat100 = False
 
+    # param_combis = [
+    #     [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
+    #     for init_w, eps, mu, fixedBNat100 in [
+    #         (0.2, 0.0, 0.0, False),
+    #         (0.8, 0.0, 0.0, False),
+    #         (0.2, 1.0, 0.0, True),
+    #         (0.2, 1.0, 0.0, False),
+    #     ]
+    # ]
+
+    mu = 0.0
+    # init_w=0.2
+    eps =0.0
     param_combis = [
         [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
-        for init_w, eps, mu, fixedBNat100 in [
-            (0.2, 0.0, 0.0, False),
-            (0.8, 0.0, 0.0, False),
-            (0.2, 1.0, 0.0, True),
-            (0.2, 1.0, 0.0, False),
+        for init_w in [0.1,0.4
         ]
     ]
-    pressures = [0, 1, 2, 4, 8, 16]
+    
+    # eps = 1.0
+    # init_w=0.2
+    # param_combis = [
+    #     [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
+    #     for mu in [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5, 1.0
+    #     ]
+    # ]
+
+    pressures =  [4] # [0, 1, 2, 4, 8, 16]
 
     param_combis = [
         p + [ext_strength] for p in param_combis for ext_strength in pressures
     ]
 
-    seeds = list(range(0, 20))  ## TODO increase
+    seeds = list(range(0, 100))  ## TODO increase
 
     detail = False
     track_times = (
@@ -578,9 +613,9 @@ if __name__ == "__main__":
         param_combis_withSeed = [
             param_combi + [seed] for param_combi in param_combis for seed in seeds
         ]
-        print("running on jobs: ", multiprocessing.cpu_count() - 2)
+        print("running on jobs: ", multiprocessing.cpu_count() - 1)
 
-        Parallel(n_jobs=max(1, multiprocessing.cpu_count() - 2))(
+        Parallel(n_jobs=max(1, multiprocessing.cpu_count() - 1))(
             delayed(run_one)(
                 seed, link_prob, init_w, beta, rho, eps, mu, fixedBNat100, ext_strength
             )

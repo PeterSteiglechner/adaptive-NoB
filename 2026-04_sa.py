@@ -48,21 +48,26 @@ cmap = dict(
         ["#4CAF50", "#AED581", "#2196F3", "#9C27B0", "#F44336", "#90CAF9", "#9E9E9E"],
     )
 )
-s_exts = [4]
+# s_exts = [4]
 names = {
     (0.2, 0.0, 0.0, False): r"static ($\omega_0=0.2$)",
     (0.2, 1.0, 0.0, False): r"adaptive",
     (0.8, 0.0, 0.0, False): r"static ($\omega_0=0.8$)",
     (0.2, 1.0, 0.0, True): r"adaptive$\rightarrow$static",
+    (0.1, 1.0, 0.0, False): r"adaptive",
+    (0.4, 1.0, 0.0, False): r"adaptive",
+    (0.2, 0.5, 0.0, False): r"adaptive",
+    (0.2, 2.0, 0.0, False): r"adaptive",
 }
 experiments = {
-    "beta": r"attention to dissonance $\beta$",
-    "M": r"nr of beliefs $M$",
-    "N": r"nr of agents $N$" + "\n" + r"(with adjusted $p=10/N$)",
-    "p": r"average nr of " + "\n" + r"social contacts $p\cdot N$",
-    "tau": r"nr of past belief changes" + "\n" + r"kept in memory $\tau$",
+    "beta":   r"attention to" + "\n" + r"dissonance $\boldsymbol{\beta}$",
+    "M":      r"nr of beliefs $\boldsymbol{M}$",
+    "N":      r"nr of agents $\boldsymbol{N}$" + "\n" + r"(with $\boldsymbol{p}=10/N$)",
+    "p":      r"average nr of " + "\n" + r"social contacts" + "\n" + r"$\boldsymbol{p} \cdot N$",
+    "tau":    r"activation" + "\n" + r"memory $\boldsymbol{\tau}$",
+    "eps":    r"internal" + "\n" + r"adaptation" + "\n" + r"rate $\boldsymbol{\epsilon}$",
+    "init_w": r"initial edge" + "\n" + r"weight $\boldsymbol{\omega_0}$",
 }
-
 res = []
 # M N initw eps mu beta p s responsFreq
 
@@ -97,6 +102,17 @@ param_combis = (
         ["tau", 10, 100, w, eps, mu, 3.0, 0.1, tau, pressure]
         for w, eps, mu in [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
         for tau in [2.0, 10.0]
+    ]
+    + [
+        ["eps", 10, 100, w, eps, mu, 3.0, 0.1, 1, pressure]
+        for eps2 in [0.5,1.0,2.0]
+        for w, eps, mu in [(0.2, eps2, 0.0)]
+        
+    ]
+    + [
+        ["init_w", 10, 100, w, eps, mu, 3.0, 0.1, 1, pressure]
+        for w2 in [0.1,0.2,0.4]
+        for w, eps, mu in [ (w2, 1.0, 0.0)]
     ]
 )
 fixedBNatt100 = False
@@ -161,8 +177,9 @@ relres["tau"] = (relres["tau"]).astype(int)
 # %%
 
 relres = relres.loc[relres.s_ext > 0]
-fig, axs = plt.subplots(5, 3, sharex=False, sharey=True, figsize=(18 / 2.54, 12 / 2.54))
+fig, axs = plt.subplots(7, 3, sharex=False, sharey=True, figsize=(18 / 2.54, 16 / 2.54))
 T = 200
+
 for n, name in enumerate(["M", "N", "beta", "p", "tau"]):
     for nn, (init_w, eps, mu) in enumerate(
         [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
@@ -197,9 +214,6 @@ for n, name in enumerate(["M", "N", "beta", "p", "tau"]):
             alpha=0.4,
             dodge=True,
         )
-
-        for coll in ax.collections:
-            coll.set_clip_on(False)
         avgs = (
             subset.groupby(["response", name])["normalized_count"]
             .median()
@@ -220,6 +234,64 @@ for n, name in enumerate(["M", "N", "beta", "p", "tau"]):
             dodge=True,
             marker="s",
         )
+for n2, name in enumerate(["eps", "init_w"]):
+    (init_w, eps, mu) = ([0.2] if name=='eps' else [0.1,0.2,0.4], [0.5,1.0,2.0] if name=='eps' else [1.0], 0.0)
+    ax = axs[n+n2+1, 2]
+    subset = relres.query(
+        f"exp=='{name}' and eps in {eps} and init_w in {init_w} and mu=={mu}"
+    )
+    subset = subset[["compliant", "resilient", "resistant", name]].melt(
+        id_vars=name, value_name="normalized_count", var_name="response"
+    )
+    base = relres.query(
+        f"exp=='base' and eps == {1.0} and init_w=={0.2} and mu=={mu}"
+    )
+    base = base[["compliant", "resilient", "resistant", name]].melt(
+        id_vars=name, value_name="normalized_count", var_name="response"
+    )
+    subset = pd.concat([subset, base])
+    subset = subset.reset_index()
+    # ax = sns.boxplot(subset, ax=ax, x=name, hue="response", y="normalized_count", palette=cmap, hue_order=["compliant", "resilient", "resistant"], legend=False, fliersize=0, fill=True, linewidth=0., whis=0)
+    ax = sns.stripplot(
+        subset,
+        ax=ax,
+        x=name,
+        hue="response",
+        y="normalized_count",
+        jitter=True,
+        palette=cmap,
+        hue_order=["compliant", "resilient", "resistant"],
+        legend=False,
+        size=2,
+        alpha=0.4,
+        dodge=True,
+    )
+    avgs = (
+        subset.groupby(["response", name])["normalized_count"]
+        .median()
+        .reset_index()
+    )
+    ax = sns.stripplot(
+        avgs,
+        ax=ax,
+        x=name,
+        hue="response",
+        y="normalized_count",
+        jitter=True,
+        palette=cmap,
+        hue_order=["compliant", "resilient", "resistant"],
+        legend=False,
+        size=4,
+        alpha=0.8,
+        dodge=True,
+        marker="s",
+    )
+for n, name in enumerate(["M", "N", "beta", "p", "tau", "eps", "init_w"]):
+    for nn, (init_w, eps, mu) in enumerate(
+        [(0.2, 0.0, 0.0), (0.8, 0.0, 0.0), (0.2, 1.0, 0.0)]
+    ):
+        ax = axs[n, nn]
+
         for coll in ax.collections:
             coll.set_clip_on(False)
         if n == 2:
@@ -251,24 +323,33 @@ for n, name in enumerate(["M", "N", "beta", "p", "tau"]):
         ax.set_yticks([-0.0, 0.5, 1.0])
         ax.set_yticklabels(rf"${int(x*100)}\,\%$" for x in [0, 0.5, 1.0])
 
+axs[-1,0].axis("off")
+axs[-1,1].axis("off")
+axs[-2,0].axis("off")
+axs[-2,1].axis("off")
+for ax in axs[-2:, 2]:
+    ax.set_yticklabels(rf"${int(x*100)}\,\%$" for x in [0, 0.5, 1.0])
+    ax.tick_params(axis="y", which="both", left=True, labelleft=True)
 import string
+n=0
+for ax in axs.flatten():
+    if not ax in axs[-2:, :2]:
+        ax.text(
+            0.0 if n == 0 else 0,
+            1.01,
+            string.ascii_uppercase[n],
+            fontsize=12,
+            fontdict={"weight": "bold"},
+            va="bottom",
+            ha="left",
+            transform=ax.transAxes,
+        )
+        n+=1
 
-for n, ax in enumerate(axs.flatten()):
-    ax.text(
-        0.0 if n == 0 else 0,
-        1.01,
-        string.ascii_uppercase[n],
-        fontsize=12,
-        fontdict={"weight": "bold"},
-        va="bottom",
-        ha="left",
-        transform=ax.transAxes,
-    )
-
-filename = "2026-04_figs/fig-sa_ofat.png"
+filename = "2026-04_figs/sa_ofat.png"
 print(filename)
 fig.subplots_adjust(
-    hspace=0.6, wspace=0.05, top=0.95, left=0.08, right=0.76, bottom=0.06
+    hspace=0.6, wspace=0.05, top=0.95, left=0.08, right=0.83, bottom=0.05
 )
 plt.savefig(filename)
 
