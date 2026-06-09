@@ -496,10 +496,9 @@ dependent_vars = [
     "clust",
     # "clust_foc",
     'bc_foc',
-    "x_focal",
     # 'extr_nonfoc'
 ]
-control_vars = []
+control_vars = ["x_focal"]
 coef_df = pd.DataFrame()
 
 for s in pressures:
@@ -573,7 +572,17 @@ for s in pressures:
         p_val = stats.chi2.sf(lr_stat, df=len(dependent_vars))
         print(f"LR test: χ²={lr_stat:.2f}, p={p_val:.4f}")
 
+        # Null model: control only
+        model_null = sm.Logit(y, sm.add_constant(X_scaled_df[control_vars])).fit(disp=0)
+
+        # Full model: control + dependent vars
+        model_full = sm.Logit(y, sm.add_constant(X_scaled_df)).fit(disp=0)
+
+        lr_stat = 2 * (model_full.llf - model_null.llf)
+        p_val = stats.chi2.sf(lr_stat, df=len(dependent_vars))
+
         coef_df = pd.concat([coef_df, coefs])
+        print("p_val", p_val)
 
 coef_df["metric"] = coef_df.index.map(metric2titleVerb)
 
