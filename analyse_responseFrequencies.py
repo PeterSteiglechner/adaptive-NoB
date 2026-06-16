@@ -15,6 +15,7 @@ from scipy.spatial.distance import pdist
 
 import matplotlib.path as mpath
 import numpy as np
+import os
 
 plt.rcParams.update({"font.size": 10})
 bigfs = 9
@@ -193,7 +194,7 @@ seedExample = 1
 pressurestrengthExample = 4
 T = 200
 fig, axs = plt.subplot_mosaic(
-    [["t"] * 4, ["1", "2", "3", "4"]], figsize=(18 / 2.54, 10 / 2.54)
+    [["t"] * 4, ["1", "2", "3", "4"]], figsize=(16 / 2.54, 10 / 2.54)
 )
 for ax in range(2, 5):
     axs[str(ax)].sharex(axs["1"])
@@ -441,11 +442,11 @@ for n, ax in enumerate([axs["t"]] + [axs[f"{i}"] for i in ["1", "2", "3", "4"]])
         transform=ax.transAxes,
     )
 
-filename = "2026-04_figs/fig3"
+filename = "figs/fig3_responseFrequencies"
 print(filename)
 if not os.path.isdir(filename.split("/")[0]):
     os.mkdir(filename.split("/")[0])
-fig.subplots_adjust(hspace=0.45, top=0.94, left=0.075, right=0.98, bottom=0.12)
+fig.subplots_adjust(hspace=0.45, top=0.94, left=0.09, right=0.98, bottom=0.1)
 plt.savefig(filename + ".png", dpi=600)
 plt.savefig(filename + ".pdf")
 
@@ -586,5 +587,6 @@ for n, ax in enumerate(axs.flatten()):
         transform=ax.transAxes,
     )
 fig.subplots_adjust(left=0.06, right=0.98, bottom=0.12, top=0.93)
-plt.savefig(f"2026-04_figs/fig_exampleSim_adaptive_seed{seedExample}_overPressure.png", dpi=600)
+plt.savefig(f"figs/AppendixFig_exampleSim_adaptive_seed{seedExample}_overPressure.png", dpi=600)
+plt.savefig(f"figs/AppendixFig_exampleSim_adaptive_seed{seedExample}_overPressure.pdf")
 # %%

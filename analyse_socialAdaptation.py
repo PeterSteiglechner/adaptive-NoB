@@ -15,6 +15,7 @@ import networkx as nx
 import matplotlib.path as mpath
 import numpy as np
 import string
+import os
 
 plt.rcParams.update({"font.size": 10})
 bigfs = 9
@@ -115,7 +116,7 @@ metric2titleVerb = dict(
     tb_tot=r"balance BN",
     tb_foc=r"balance focal BN",
     clust=r"clustering BN",
-    bc_foc=r"BN focal centrality",
+    bc_foc=r"centrality focal BN",
     # bn_expected_influence = r"expected influence focal",
     Hpersfoc=r"focal BN dissonance",
     Hpersnonfoc=r"non-focal BN dissonance",
@@ -253,7 +254,7 @@ metrics = metrics.drop(columns=["Hpers"])
 # %%
 
 fig, axs = plt.subplots(3, 1, sharex=True, sharey=False, figsize=(12 / 2.54, 6 / 2.54))
-for row, mu in enumerate([0.0, 0.005, 0.1]):
+for row, mu in enumerate([0.0, 0.005, 0.2]):
     df = pd.read_csv(
         f"simOut/sim_link_prob{link_prob:.2f}_init_w{init_w:.2f}_beta{beta:.2f}_rho{rho:.2f}_eps{eps:.2f}_mu{mu:.3f}{'_fixedBNat100' if fixedBNat100 else ''}_ext_strength{s}_seed{seed}.csv"
     ).query("t==100")
@@ -280,7 +281,8 @@ for row, mu in enumerate([0.0, 0.005, 0.1]):
     axs[row].set_xlim(-6,6)
 axs[-1].text(0.02,0.95, r"each color = one pair of beliefs $(m,n)$", fontsize=smallfs, va="top", ha="left", transform=axs[-1].transAxes)
 fig.subplots_adjust(bottom=0.15, left=0.05, right=0.97, top=0.97)
-plt.savefig("2026-04_figs/sa_edgeweight distributions.png", dpi=300)
+plt.savefig("figs/AppendixFig_edgeweight_distributions.png", dpi=600)
+plt.savefig("figs/AppendixFig_edgeweight_distributions.pdf")
 # %%
 # %%
 
@@ -292,16 +294,16 @@ fig, axs = plt.subplot_mosaic(
         ["metric"] * 9,
         ["mu"] * 9,
     ],
-    height_ratios=[1, 1, 0.001, 3, 3],
+    height_ratios=[1, 1, 0.0005, 2.5, 2.5],
     width_ratios=[1] * 9,
-    figsize=(18 / 2.54, 15 / 2.54),
+    figsize=(16 / 2.54, 12 / 2.54),
 )
 
 G0 = nx.complete_graph(len(belief_dimensions))
 pos0 = nx.circular_layout(G0)
 
 eps = 1.0
-mus_networks = [0.005, 0.1]
+mus_networks = [0.005, 0.2]
 np.random.seed(42)
 seed = 1
 
@@ -380,7 +382,7 @@ sns.lineplot(
     marker="o",
     errorbar="sd",
     ax=ax_metric,
-    label="BN heterogeneity",
+    label="heterogeneity BNs",
     err_kws={"alpha": 0.1},
 )
 
@@ -414,7 +416,7 @@ for m in selected_metrics:
         err_kws={"alpha": 0.1},
     )
 
-ax_metric.legend(loc="lower center", ncols=2)
+ax_metric.legend(loc="lower left", ncols=4)
 ax_metric.set_ylim(-2, 2)
 ax_metric.set_yticks([-2, -1, 0, 1, 2])
 ax_metric.set_ylabel("metric value (z-score)")
@@ -475,7 +477,7 @@ for i in [0.5, 2.5, 4.5, 6.5, 8.5]:
 
 axs[".."].axis("off")
 
-fig.subplots_adjust(left=0.09, bottom=0.08, top=0.99, right=0.99)
+fig.subplots_adjust(left=0.1, bottom=0.085, top=0.99, right=0.99)
 
 add_bracket_with_tick(
     fig,
@@ -545,10 +547,12 @@ for n, key in enumerate(["a0", "b0", "metric", "mu"]):
         transform=axs[key].transAxes,
     )
 
-fname = f"2026-04_figs/fig5_social.png"
+fname = f"figs/fig6_socialAdaptation"
 if not os.path.isdir(fname.split("/")[0]):
     os.mkdir(fname.split("/")[0])
-plt.savefig(fname, dpi=600)
+plt.savefig(fname+".png", dpi=600)
+plt.savefig(fname+".pdf", )
+
 
 # %%
 plt.figure()

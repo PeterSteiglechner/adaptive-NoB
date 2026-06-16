@@ -15,6 +15,7 @@ from scipy.spatial.distance import pdist
 
 import matplotlib.path as mpath
 import numpy as np
+import os
 
 plt.rcParams.update({"font.size": 10})
 bigfs = 9
@@ -346,11 +347,12 @@ for ax in axs.flatten():
         )
         n+=1
 
-filename = "2026-04_figs/sa_ofat.png"
+filename = "figs/AppendixFig_ofat"
 print(filename)
 fig.subplots_adjust(
     hspace=0.6, wspace=0.05, top=0.95, left=0.08, right=0.83, bottom=0.05
 )
-plt.savefig(filename)
+plt.savefig(filename+".png", dpi=600)
+plt.savefig(filename+".pdf")
 
 # %%

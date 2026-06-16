@@ -1,4 +1,6 @@
 # %%
+
+from scipy import stats
 import numpy as np
 import pandas as pd
 from itertools import combinations
@@ -265,21 +267,6 @@ for s_ext in pressures:
         "% Change over time"
     )
     print("% " + " & ".join([""] + negcols) + " & \\\\ \\hline")
-    metrics_table_sort = [
-        "x_focal",
-        "extr_nonfoc",
-        "n_nbs",
-        "absOm_tot",
-        "absOm_foc",
-        "tb_tot",
-        "tb_foc",
-        "clust",
-        # "clust_foc",
-        "bc_foc",
-        "Hpersfoc",
-        "Hpersnonfoc",
-        "Hsoc",
-    ]
     for metric in metrics_table_sort:
         print(f"  " + f"{metric2titleVerb[metric]} &  ", end="")
         for r in negcols:
@@ -403,37 +390,11 @@ for n, ax in enumerate(g.axes.flat):
         ha="left",
         transform=ax.transAxes,
     )
-plt.savefig(f"2026-04_figs/metricChange_mu{mu}.png", dpi=600)
+plt.savefig(f"figs/fig5_metricChange_mu{mu}.png", dpi=600)
+plt.savefig(f"figs/fig5_metricChange_mu{mu}.pdf",)
 
 #%%
 
-# ----------------------------------------------
-# -------    Exploration
-# ----------------------------------------------
-# res.query("s==1 and eps==1").groupby("response")[metric_cols].mean().loc[['compliant',
-#  'resilient',
-#  'resistant']].T
-# %%
-
-
-# plt.rcParams.update({"font.size": 10})
-# bigfs = 16
-# smallfs = 15
-# plt.rcParams.update({"font.size": bigfs})
-# plt.rcParams.update({"axes.titlesize": bigfs})
-# plt.rcParams.update({"axes.labelsize": bigfs})
-# plt.rcParams.update({"legend.fontsize": smallfs})
-# plt.rcParams.update({"xtick.labelsize": smallfs})
-# plt.rcParams.update({"ytick.labelsize": smallfs})
-# s4 = res.query("s==4 and eps==1")
-# sns.pairplot(
-#     s4.loc[
-#         s4.response.isin(["compliant", "resilient", "resistant"]),
-#         selected_metricsl_cols + ["response"],
-#     ],
-#     hue="response",
-#     palette=cmap,
-# )
 
 # %%
 
@@ -501,88 +462,80 @@ dependent_vars = [
 control_vars = ["x_focal"]
 coef_df = pd.DataFrame()
 
+table_rows = []
 for s in pressures:
     for ty in ["rR-C", "R-r"]:
-        df = resBefore.query(f"s=={s} and eps=={eps}")
-        label_map = dict(zip(response_cols, [np.nan] * 6))
-        if ty == "R-r":
-            label_map["resistant"] = 1
-            label_map["resilient"] = 0
-        elif ty == "rR-C":
-            label_map["resistant"] = 1
-            label_map["resilient"] = 1
-            label_map["compliant"] = 0
-            label_map["latecompliant"] = 0
+        if not (ty=="R-r" and s>=8):
+            df = resBefore.query(f"s=={s} and eps=={eps}")
+            label_map = dict(zip(response_cols, [np.nan] * 6))
+            if ty == "R-r":
+                label_map["resistant"] = 1
+                label_map["resilient"] = 0
+            elif ty == "rR-C":
+                label_map["resistant"] = 1
+                label_map["resilient"] = 1
+                label_map["compliant"] = 0
+                label_map["latecompliant"] = 0
 
-        df["response_group"] = df["response"].map(label_map)
-        df = df.dropna(subset=["response_group"])
+            df["response_group"] = df["response"].map(label_map)
+            df = df.dropna(subset=["response_group"])
+            # print(len(df))
 
-        X = df[dependent_vars + control_vars]
-        scaler = StandardScaler()
-        X_scaled_df = pd.DataFrame(
-            scaler.fit_transform(X), columns=dependent_vars + control_vars
-        )
-        y = df["response_group"].values
-        X_scaled_df = X_scaled_df.loc[:, X.std() > 1e-6]
-
-        model = sm.Logit(y, sm.add_constant(X_scaled_df)).fit()
-
-        coefs = pd.DataFrame(
-            {
-                "coefficient": model.params[1:],  # exclude intercept
-                "odds_ratio": np.exp(model.params[1:]),
-                "pvalue": model.pvalues[1:],
-                "ci_low": model.conf_int(alpha=0.05)[0][1:],
-                "ci_high": model.conf_int(alpha=0.05)[1][1:],
-            },
-            index=dependent_vars + control_vars,
-        )
-        coefs["type"] = ty
-        coefs["s"] = s
-
-        print(
-                "".join(["#"] * 10)
-                + f" s_ext = {s} "
-                + "".join(["#"] * 10)
+            X = df[dependent_vars + control_vars]
+            scaler = StandardScaler()
+            X_scaled_df = pd.DataFrame(
+                scaler.fit_transform(X), columns=dependent_vars + control_vars
             )
-        # print(f"\n{ty} --- Intercept: {model.params["const"]:.4f}")
-        # print(f"{ty} --- Pseudo R²:  {model.prsquared:.4f}")  # better than accuracy
+            y = df["response_group"].values
+            X_scaled_df = X_scaled_df.loc[:, X.std() > 1e-6]
 
-        # # Tjur's R² (more intuitive — difference in mean predicted probs between groups)
-        y_hat = model.predict()
-        tjur_r2 = y_hat[y == 1].mean() - y_hat[y == 0].mean()
-        print(f"Tjur R²: {tjur_r2:.4f}")
+            model = sm.Logit(y, sm.add_constant(X_scaled_df)).fit()
 
-        # # Classification accuracy with a 0.5 threshold
-        # preds = (y_hat >= 0.5).astype(int)
-        # accuracy = (preds == y).mean()
-        # print(f"Accuracy: {accuracy:.4f}")
+            coefs = pd.DataFrame(
+                {
+                    "coefficient": model.params[1:],  # exclude intercept
+                    "odds_ratio": np.exp(model.params[1:]),
+                    "pvalue": model.pvalues[1:],
+                    "ci_low": model.conf_int(alpha=0.05)[0][1:],
+                    "ci_high": model.conf_int(alpha=0.05)[1][1:],
+                },
+                index=dependent_vars + control_vars,
+            )
+            coefs["type"] = ty
+            coefs["s"] = s
 
-        # # Or a proper confusion matrix
-        # from sklearn.metrics import classification_report
-        # print(classification_report(y, preds))
+            # --- Metrics ---
+            pseudo_r2 = model.prsquared
+            y_hat = model.predict()
+            tjur_r2 = y_hat[y == 1].mean() - y_hat[y == 0].mean()
 
-        # from sklearn.metrics import balanced_accuracy_score
-        # print(f"Balanced accuracy: {balanced_accuracy_score(y, preds):.4f}")
+            model_null = sm.Logit(y, sm.add_constant(X_scaled_df[control_vars])).fit(disp=0)
+            model_full = sm.Logit(y, sm.add_constant(X_scaled_df)).fit(disp=0)
+            lr_stat = 2 * (model_full.llf - model_null.llf)
+            p_val = stats.chi2.sf(lr_stat, df=len(dependent_vars))
 
-        from scipy import stats
-        ll_full = model.llf
-        ll_null = model.llnull
-        lr_stat = 2 * (ll_full - ll_null)
-        p_val = stats.chi2.sf(lr_stat, df=len(dependent_vars))
-        print(f"LR test: χ²={lr_stat:.2f}, p={p_val:.4f}")
+            # --- Group proportions ---
+            counts = df["response_group"].value_counts()
+            total = counts.sum()
+            prop_str = f"{counts.get(1, 0)/total:.2f} / {counts.get(0, 0)/total:.2f}"
 
-        # Null model: control only
-        model_null = sm.Logit(y, sm.add_constant(X_scaled_df[control_vars])).fit(disp=0)
+            # --- Store row ---
+            row = {
+                "ty": ty,
+                "s": s,
+                "pseudo_r2": pseudo_r2,
+                "tjur_r2": tjur_r2,
+                "lr_stat": lr_stat,
+                "lr_p": p_val,
+                "prop_str": prop_str,
+                "n": int(total),
+            }
+            table_rows.append(row)
 
-        # Full model: control + dependent vars
-        model_full = sm.Logit(y, sm.add_constant(X_scaled_df)).fit(disp=0)
+            print("Coefficients")
+            print(coefs[coefs["type"] == ty].sort_values("pvalue"))
 
-        lr_stat = 2 * (model_full.llf - model_null.llf)
-        p_val = stats.chi2.sf(lr_stat, df=len(dependent_vars))
-
-        coef_df = pd.concat([coef_df, coefs])
-        print("p_val", p_val)
+            coef_df = pd.concat([coef_df, coefs])
 
 coef_df["metric"] = coef_df.index.map(metric2titleVerb)
 
@@ -592,6 +545,68 @@ combined = (
     .join(coef_df.set_index(["type", "metric", "s"])[["coefficient", "ci_low", "ci_high"]])
     .reset_index()
 )
+
+#%%
+# ----------------------------------------------
+# -------    Table Performance
+# ----------------------------------------------
+
+# ── Build LaTeX tables ──────────────────────────────────────────────────────
+
+# def p_stars(p):
+#     if p < 0.001: return "***"
+#     if p < 0.01:  return "**"
+#     if p < 0.05:  return "*"
+#     return ""
+
+def make_latex_table(rows, ty_label, caption, label):
+    header = r"""\begin{table}[ht]
+\centering
+\caption{""" + caption + r"""}
+\label{""" + label + r"""}
+\begin{tabular}{ccccccc}
+\toprule
+$s$ & $N$ & Proportions & McFadden $R^2$ & Tjur $R^2$ & LR $\chi^2$ & LR $p$ \\
+     &     & (group 1 / group 0) &          &            &             &        \\
+\midrule"""
+
+    body_lines = []
+    for r in rows:
+        # stars = p_stars(r["lr_p"])
+        p_fmt = f"{r['lr_p']:.2e}" if r['lr_p']>0.001 else "<0.001"
+        line = (
+            f"  {r['s']} & {r['n']} & {r['prop_str']} & "
+            f"{r['pseudo_r2']:.3f} & {r['tjur_r2']:.3f} & "
+            f"{r['lr_stat']:.2f} & {p_fmt} \\\\"
+        )
+        body_lines.append(line)
+
+    footer = r"""\bottomrule
+\end{tabular}
+\end{table}"""
+
+    return "\n".join([header] + body_lines + [footer])
+
+# Split by type
+rows_rRC = [r for r in table_rows if r["ty"] == "rR-C"]
+rows_Rr  = [r for r in table_rows if r["ty"] == "R-r"]
+
+print(make_latex_table(
+    rows_rRC,
+    ty_label="rR-C",
+    caption=r"Model fit statistics across pressure levels --- \textit{Resistant/Resilient-Compliant} classification (Resistant+Resilient vs.\ Compliant)",
+    label="tab:fit_rRC"
+))
+
+print()
+
+print(make_latex_table(
+    rows_Rr,
+    ty_label="R-r",
+    caption=r"Model fit statistics across pressure levels --- \textit{Resistant-Resilient} classification (Resistant vs.\ Resilient)",
+    label="tab:fit_Rr"
+))
+
 # ----------------------------------------------
 # -------    PLOTTING
 # ----------------------------------------------
@@ -600,7 +615,7 @@ combined = (
 showRegression = True
 diss = False
 nmetric = len(combined.metric.unique())
-fig, axs = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(18 / 2.54, 8 / 2.54))
+fig, axs = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(16 / 2.54, 8 / 2.54))
 # axs[0].scatter([],[],marker="o", c="grey", s=5, edgecolor="grey", label="regression\ncoefficient")
 if showRegression:
     dotpatch = mpl.lines.Line2D(
@@ -771,10 +786,10 @@ if showRegression:
 
 
 fig.subplots_adjust(
-    left=0.2, top=0.82 if showRegression else 0.92, right=0.98, bottom=0.12
+    left=0.23, top=0.82 if showRegression else 0.92, right=0.98, bottom=0.12
 )
 fname = (
-    f"2026-04_figs/fig4_mu{mu}{names[(init_w,eps,mu,fixedBNat100)] if eps!=1 else ''}"
+    f"figs/fig4_mu{mu}{names[(init_w,eps,mu,fixedBNat100)] if eps!=1 else ''}"
 )
 
 if not os.path.isdir(fname.split("/")[0]):
@@ -812,7 +827,8 @@ for s, ax in zip(pressures, axs.flatten()):
 # fig.autofmt_xdate(rotation=30, ha="right")
 # fig.tight_layout()
 fig.subplots_adjust(hspace=0.01, wspace=0.02, top=1, right=1, left=0.27, bottom=0.27 )
-plt.savefig(f"2026-04_figs/appendix_fig_metricCorrelations{f'_mu{mu}' if mu>0 else ''}.png", dpi=600)
+plt.savefig(f"figs/AppendixFig_metricCorrelations{f'_mu{mu}' if mu>0 else ''}.png", dpi=600)
+plt.savefig(f"figs/AppendixFig_metricCorrelations{f'_mu{mu}' if mu>0 else ''}.pdf",)
 # %%
 
 def greedy_uncorrelated_subset(corr_matrix, n):

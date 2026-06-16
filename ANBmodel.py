@@ -1,7 +1,7 @@
 # %%
 """
-Adaptive Belief Networks Model
-version 2026-04-15, Peter Steiglechner, steiglechner@csh.ac.at
+Adaptive Networks of Beliefs Model
+version 2026-06-01, Peter Steiglechner, steiglechner@csh.ac.at
 """
 
 import networkx as nx
@@ -17,12 +17,12 @@ import igraph as ig
 
 # FIXED PARAMETERS
 M = 10
-focal = 0
+focal = 0  # dimension of the focal belief
+ext_belief = focal
 n_agents = 100
 tau = 1
-ext_belief = focal
 fixedBNat100 = False
-two_external_events = False
+two_external_events = False  # if True: sim runs to T=300 and there is a second external pressure event at t=200 
 lam = 0.0
 ext_time = list(np.arange(101, 151)) + (
     list(np.arange(201, 251)) if two_external_events else []
@@ -90,7 +90,6 @@ metric_cols = [
     "absOm_tot",
     "absOm_foc",
     "clust",
-    # "clust_foc",
     "bc_foc",
     "expI",
     "x_focal",
@@ -127,13 +126,12 @@ def initialise_agents(init_w):
             + [np.nan] * (columnIndex - 2)
             + list(opinion_vector)
             + edgeweights
-            + list(np.zeros(M)) * tau  # this will be used to store past belief changes
+            + list(np.zeros(M)) * tau  # this will be used to store tau*M past belief changes
         )
     return np.array(agent_list)
 
 
 def initialise_network(seed, link_prob):
-    """Initialize social network of agents with personal belief networks"""
     np.random.seed(seed)
     A = np.triu(
         (np.random.random((n_agents, n_agents)) <= link_prob).astype(bool),
@@ -287,22 +285,12 @@ def get_metrics(agents):
 
     bc_foc = np.array([bc_focal_for_agent(a) for a in range(n_agents)])
 
-    # bc = np.zeros(n_agents)
-    # for a in range(n_agents):
-    #     G = nx.Graph()
-    #     for i, j in edge_list:
-    #         w = absA[a, i, j]
-    #         if w > 0:
-    #             G.add_edge(i, j, dist=1.0 / (w + eps_val), weight=A[a,i,j])
-    #     bc[a] = nx.betweenness_centrality(G, weight="dist", normalized=False)[focal]
-
     return (
         tri_balance_tot,
         tri_balance_foc,
         bn_abs_meanedge_tot,
         bn_abs_meanedge_foc,
         avg_weighted_clustering,
-        # focal_weighted_clustering,
         bc_foc,
         expected_influence,
     )
@@ -321,7 +309,6 @@ def fill_metrics(t, agents, nb_list, params):
     agents[:, 9] = absOm_tot
     agents[:, 10] = absOm_foc
     agents[:, 11] = clust
-    # agents[:, 12] = clust_foc
     agents[:, 12] = bc_foc
     agents[:, 13] = expI
     agents[:, 14] = agents[:, beliefids[focal]]
@@ -481,7 +468,6 @@ def run_simulation(params):
             agents = fill_metrics(t, agents, nb_list, params)
             snapshots = np.concatenate([snapshots, agents])
 
-    # calculate responses and compress output dataframe
     output_df = get_output(snapshots)
     return output_df
 
@@ -556,42 +542,33 @@ if __name__ == "__main__":
     # eps = 1.0
     # mu = 0.0
     # ext_strength = 4
-    fixedBNat100 = False
 
-    # param_combis = [
-    #     [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
-    #     for init_w, eps, mu, fixedBNat100 in [
-    #         (0.2, 0.0, 0.0, False),
-    #         (0.8, 0.0, 0.0, False),
-    #         (0.2, 1.0, 0.0, True),
-    #         (0.2, 1.0, 0.0, False),
-    #     ]
-    # ]
-
-    mu = 0.0
-    # init_w=0.2
-    eps =0.0
     param_combis = [
         [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
-        for init_w in [0.1,0.4
+        for init_w, eps, mu, fixedBNat100 in [
+            (0.2, 0.0, 0.0, False),    # static, low edge weights
+            (0.8, 0.0, 0.0, False),    # static, high edge weights
+            (0.2, 1.0, 0.0, True),    # adaptive until external pressure
+            (0.2, 1.0, 0.0, False),    # fully adaptive, strong edge weights
         ]
     ]
     
     # eps = 1.0
     # init_w=0.2
+    # fixedBNat100 = False
     # param_combis = [
     #     [link_prob, init_w, beta, rho, eps, mu, fixedBNat100]
     #     for mu in [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5, 1.0
     #     ]
     # ]
 
-    pressures =  [4] # [0, 1, 2, 4, 8, 16]
+    pressures =  [0, 1, 2, 4, 8, 16]
 
     param_combis = [
         p + [ext_strength] for p in param_combis for ext_strength in pressures
     ]
 
-    seeds = list(range(0, 100))  ## TODO increase
+    seeds = list(range(0, 10))  ## TODO increase
 
     detail = False
     track_times = (
@@ -607,7 +584,7 @@ if __name__ == "__main__":
     )
 
     if detail and len(seeds) > 10:
-        print("...this will take very long")
+        print("...this will take very long. Reduce the number of seeds or set detail to False. Aborting")
         quit()
     else:
         param_combis_withSeed = [

@@ -13,6 +13,7 @@ from matplotlib import patches
 from scipy.spatial.distance import pdist, squareform
 import xarray as xr
 import string
+import os
 
 sns.set_style("ticks", {"axes.linewidth": 0.5})
 smallfs = 8
@@ -268,7 +269,7 @@ for ags, col in zip(agss, cols):
                             ),
                         )
                     axs["t"].set_xlabel("time")
-                    axs["t"].set_ylabel("focal belief $x_\mathrm{foc}$", va="center")
+                    axs["t"].set_ylabel(r"focal belief $x_\mathrm{foc}$", va="center")
                     axs["t"].set_clip_on(False)
                     axs["t"].set_xlim(0, Tfinal)
                     axs["t"].set_ylim(-1.0, 1.0)

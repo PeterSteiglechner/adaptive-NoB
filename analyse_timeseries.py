@@ -424,13 +424,15 @@ for T in [Tfinal]:
             fontsize=smallfs,
         )
     fname = (
-        f"2026-04_figs/gif/fig2"
+        f"figs/fig2"
         + ("_" + names[(init_w, eps, mu, fixedBNat100)])
         + f"_t{T}"
     )
     if not os.path.isdir(fname.split("/")[0]):
         os.mkdir(fname.split("/")[0])
+    print(fname)
     plt.savefig(fname + ".png", dpi=600)
+    plt.savefig(fname + ".pdf")
 
     print(
         f"t={T}",
